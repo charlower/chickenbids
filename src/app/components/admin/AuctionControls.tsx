@@ -21,7 +21,7 @@ type Product = {
 };
 
 type AuctionWithProduct = Auction & {
-  products: Product;
+  products: Product | null;
 };
 
 export function AuctionControls() {
@@ -54,13 +54,18 @@ export function AuctionControls() {
       const { data: scheduledData, error: scheduledError } = await supabase
         .from('auctions')
         .select(
-          'id, status, current_price, floor_price, locked_by, start_at, start_price, product_id, products(name, variant)'
+          'id, status, current_price, floor_price, locked_by, start_at, start_price, product_id, products!inner(name, variant)'
         )
         .eq('status', 'scheduled')
         .order('start_at', { ascending: true });
 
       if (scheduledData && !scheduledError) {
-        setAllAuctions(scheduledData as AuctionWithProduct[]);
+        // Transform the data since Supabase returns products as a single object with !inner
+        const transformedData = scheduledData.map((auction: any) => ({
+          ...auction,
+          products: auction.products || null,
+        }));
+        setAllAuctions(transformedData as AuctionWithProduct[]);
       }
     };
 
@@ -89,13 +94,18 @@ export function AuctionControls() {
     const { data: scheduledData, error: scheduledError } = await supabase
       .from('auctions')
       .select(
-        'id, status, current_price, floor_price, locked_by, start_at, start_price, product_id, products(name, variant)'
+        'id, status, current_price, floor_price, locked_by, start_at, start_price, product_id, products!inner(name, variant)'
       )
       .eq('status', 'scheduled')
       .order('start_at', { ascending: true });
 
     if (scheduledData && !scheduledError) {
-      setAllAuctions(scheduledData as AuctionWithProduct[]);
+      // Transform the data since Supabase returns products as a single object with !inner
+      const transformedData = scheduledData.map((auction: any) => ({
+        ...auction,
+        products: auction.products || null,
+      }));
+      setAllAuctions(transformedData as AuctionWithProduct[]);
     }
   };
 
