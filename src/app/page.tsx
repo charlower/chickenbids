@@ -187,7 +187,7 @@ export default function Home() {
         .limit(3);
 
       if (error) {
-        console.error('Error fetching wins:', error);
+        console.error('Error fetching win:', error);
         setRecentActivity([]);
         return;
       }
