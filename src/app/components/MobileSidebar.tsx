@@ -38,7 +38,7 @@ export default function MobileSidebar({
             <div className={styles.header}>
               <div className={styles.title}>INTEL</div>
               <button className={styles.closeButton} onClick={onClose}>
-                ✕
+                <span>✕</span>
               </button>
             </div>
 
