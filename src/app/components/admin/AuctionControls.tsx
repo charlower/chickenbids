@@ -267,8 +267,8 @@ export function AuctionControls() {
               <div key={auction.id} className={styles.auctionRow}>
                 <div className={styles.auctionInfo}>
                   <div className={styles.auctionName}>
-                    {auction.products.name}
-                    {auction.products.variant && (
+                    {auction.products?.name || 'Unknown Product'}
+                    {auction.products?.variant && (
                       <span className={styles.variant}>
                         {' '}
                         · {auction.products.variant}
