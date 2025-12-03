@@ -1,0 +1,160 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 85%;
+  max-width: 350px; /* Reduced from 400px for better text wrapping */
+  height: 100%;
+  max-height: 100vh;
+  max-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-right: 2px solid rgba(96, 165, 250, 0.3);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 50px rgba(96, 165, 250, 0.2);
+  overflow: hidden; /* Prevent sidebar itself from scrolling */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+  background: rgba(15, 23, 42, 0.5);
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #60a5fa;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+}
+
+.closeButton {
+  background: none;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  color: #60a5fa;
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background: rgba(96, 165, 250, 0.1);
+  border-color: #60a5fa;
+}
+
+.content {
+  flex: 1 1 0%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0; /* Allow flex child to shrink below content size */
+  max-height: 100%; /* Ensure it doesn't overflow parent */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Reduce font size slightly on very small screens */
+@media (max-width: 375px) {
+  .content {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+/* Scrollbar styling */
+.content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.content::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: rgba(96, 165, 250, 0.3);
+  border-radius: 0px;
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: rgba(96, 165, 250, 0.5);
+}
+
+/* Override any overflow:hidden from parent styles */
+.content > * {
+  overflow: visible !important;
+}
+
+/* Ensure all children can be seen */
+.content * {
+  flex-shrink: 0;
+}
+
+/* Force text wrapping - override any nowrap */
+.sidebar * {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+/* Exception: NowPlaying component needs nowrap for scrolling animation */
+.sidebar [class*="scrollText"] {
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: none !important;
+}
+
+/* Allow credit text to wrap while keeping right alignment */
+.sidebar [class*="creditValue"],
+.sidebar [class*="creditEmpty"],
+.sidebar [class*="creditArmed"] {
+  text-align: right !important;
+  max-width: 55% !important;
+  min-width: 0 !important;
+}
+
+/* Stack login/register buttons vertically in sidebar */
+.sidebar [class*="playerActionsLogin"] {
+  flex-direction: column !important;
+  width: 100%;
+  gap: 8px !important;
+}
+
+.sidebar [class*="playerActionsLogin"] button {
+  width: 100% !important;
+}
+
+/* Specifically fix the credit text overflow */
+.content {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.content > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+

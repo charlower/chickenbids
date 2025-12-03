@@ -1,0 +1,123 @@
+.container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.frame {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 35, 0.95));
+  border: 2px solid rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 20px rgba(34, 197, 94, 0.1);
+  padding: 8px;
+  animation: pulse 2s ease-in-out infinite, flicker 0.15s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 20px rgba(34, 197, 94, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.6), inset 0 0 30px rgba(34, 197, 94, 0.2);
+  }
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.imageWrapper {
+  position: relative;
+  width: 170px;
+  height: 200px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: flicker 0.2s infinite;
+}
+
+.scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 3px
+  );
+  pointer-events: none;
+}
+
+.nameplate {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.nameplate span {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #22c55e;
+  font-weight: 700;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .container {
+    top: 10px;
+    left: 10px;
+  }
+
+  .nameplate {
+    padding: 4px 8px;
+  }
+
+  .nameplate span {
+    font-size: 9px;
+  }
+
+  .statusDot {
+    width: 6px;
+    height: 6px;
+  }
+}
+

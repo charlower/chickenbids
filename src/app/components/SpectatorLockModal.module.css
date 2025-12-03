@@ -1,0 +1,155 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 6, 22, 0.95);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+
+.modal {
+  width: 500px;
+  max-width: 90vw;
+  max-height: 90vh;
+  max-height: 90dvh;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.98),
+    rgba(10, 15, 35, 0.98)
+  );
+  border: 2px solid rgba(96, 166, 250, 0.4);
+  padding: 24px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7),
+    0 0 40px rgba(96, 166, 250, 0.2);
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(96, 166, 250, 0.05) 0%,
+    transparent 50%,
+    rgba(96, 166, 250, 0.05) 100%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+.header {
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #f59e0b;
+  margin-bottom: 24px;
+  font-weight: 700;
+}
+
+.priceSection {
+  background: rgba(5, 6, 22, 0.6);
+  border: 1px solid rgba(96, 166, 250, 0.2);
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.priceLabel {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.price {
+  font-size: 48px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+}
+
+.timerSection {
+  background: rgba(5, 6, 22, 0.6);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.timerLabel {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.timer {
+  font-size: 48px;
+  font-weight: 700;
+  color: #fbbf24;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.message {
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+  line-height: 1.6;
+  padding: 16px;
+  background: rgba(5, 6, 22, 0.4);
+}
+
+.expiredMessage {
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #22c55e;
+  padding: 20px;
+  background: rgba(25, 200, 89, 0.15);
+  border: 2px solid rgba(34, 197, 94, 0.4);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .modal {
+    padding: 20px 16px;
+  }
+
+  .header {
+    font-size: clamp(10px, 3.5vw, 14px);
+    letter-spacing: 0.2em;
+    margin-bottom: 16px;
+  }
+
+  .price {
+    font-size: 36px;
+  }
+
+  .timer {
+    font-size: 36px;
+  }
+
+  .message {
+    font-size: 12px;
+  }
+
+  .expiredMessage {
+    font-size: 14px;
+  }
+}

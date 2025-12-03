@@ -1,0 +1,159 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at top, #152777 0, #000000 70%);
+  color: #f9fafb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+.hudBar {
+  height: 74px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid rgba(148, 163, 184, 0.4);
+  background: linear-gradient(
+    to right,
+    rgba(15, 23, 42, 0.95),
+    rgba(30, 64, 175, 0.95)
+  );
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+}
+
+.title {
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e5e7eb;
+}
+
+.meta a:hover {
+  text-decoration: underline;
+}
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.headline {
+  font-size: 28px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: #f97316;
+  text-shadow: 0 0 10px rgba(249, 115, 22, 0.8),
+    0 0 20px rgba(248, 250, 252, 0.3);
+  border-bottom: 2px solid rgba(248, 250, 252, 0.15);
+  padding-bottom: 8px;
+}
+
+.lede {
+  font-size: 21px;
+  line-height: 1.3;
+  color: #e5e7eb;
+  margin-top: 12px;
+}
+
+.section {
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: rgba(15, 23, 42, 0.9);
+  padding: 16px 18px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #9ca3af;
+  margin-bottom: 12px;
+  border-left: 3px solid #3b82f6;
+  padding-left: 8px;
+}
+
+.list {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.list li {
+  margin-bottom: 6px;
+}
+
+.listItemLabel {
+  font-weight: 600;
+  color: #facc15;
+}
+
+.faqList {
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.faqQ {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #facc15;
+}
+
+.backLink {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #9ca3af;
+}
+
+.backLink a {
+  color: #facc15;
+  text-decoration: none;
+}
+
+.backLink a:hover {
+  text-decoration: underline;
+}
+
+/* Mobile responsive header */
+@media (max-width: 768px) {
+  .hudBar {
+    height: auto;
+    padding: 16px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .title {
+    font-size: 11px;
+  }
+
+  .meta {
+    width: 100%;
+    font-size: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+

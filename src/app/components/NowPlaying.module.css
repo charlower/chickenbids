@@ -1,0 +1,61 @@
+.container {
+  width: 100%;
+  background: linear-gradient(135deg, #0f172a 0%, #0b1f3f 50%, #0f172a 100%);
+  border: 1px solid #15273f;
+  border-radius: 0;
+  padding: 5.5px 12px 8px 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scrollWrapper {
+  width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+}
+
+.scrollText {
+  display: inline-block;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: #60a5fa;
+  text-transform: uppercase;
+  animation: scrollLeft 60s linear infinite;
+  will-change: transform;
+}
+
+@media (max-width: 960px) {
+  .scrollText {
+    animation: scrollLeft 15s linear infinite;
+  }
+}
+
+@keyframes scrollLeft {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Pause animation on hover */
+.scrollWrapper:hover .scrollText {
+  animation-play-state: paused;
+}
+

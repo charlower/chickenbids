@@ -1,0 +1,284 @@
+.container {
+  position: relative;
+}
+
+.messageBanner {
+  background-color: rgba(34, 197, 94, 0.2);
+  border: 2px solid #22c55e;
+  color: #22c55e;
+  padding: 16px;
+  margin-bottom: 30px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.noAuction {
+  text-align: center;
+  padding: 80px 20px;
+  color: #94a3b8;
+}
+
+.noAuction .icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.noAuction p {
+  margin: 10px 0;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+}
+
+.noAuction .hint {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Info Card */
+.infoCard {
+  background-color: #1e293b;
+  border: 2px solid #334155;
+  padding: 24px;
+  margin-bottom: 30px;
+}
+
+.infoHeader {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #60a6fa;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #334155;
+}
+
+.infoGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.infoLabel {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.infoValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.statusscheduled {
+  color: #60a6fa !important;
+}
+
+.statuslive {
+  color: #22c55e !important;
+}
+
+.statuspaused {
+  color: #fbbf24 !important;
+}
+
+.statuscompleted {
+  color: #94a3b8 !important;
+}
+
+.statuscancelled {
+  color: #ef4444 !important;
+}
+
+/* Controls */
+.controlsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.controlButton {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 16px 24px;
+  border: 2px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.controlButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.controlButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonPrimary {
+  background-color: #1e40af;
+  border-color: #3b82f6;
+  color: #e0e7ff;
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background-color: #2563eb;
+  border-color: #60a5fa;
+}
+
+.buttonSuccess {
+  background-color: #065f46;
+  border-color: #10b981;
+  color: #d1fae5;
+}
+
+.buttonSuccess:hover:not(:disabled) {
+  background-color: #047857;
+  border-color: #34d399;
+}
+
+.buttonWarning {
+  background-color: #78350f;
+  border-color: #f59e0b;
+  color: #fef3c7;
+}
+
+.buttonWarning:hover:not(:disabled) {
+  background-color: #92400e;
+  border-color: #fbbf24;
+}
+
+.buttonDanger {
+  background-color: #7f1d1d;
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+.buttonDanger:hover:not(:disabled) {
+  background-color: #991b1b;
+  border-color: #f87171;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(10, 10, 15, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  letter-spacing: 0.15em;
+  color: #60a6fa;
+  animation: pulse 1.5s infinite;
+}
+
+/* Scheduled Auctions Section */
+.scheduledSection {
+  background-color: #1e293b;
+  border: 2px solid #334155;
+  padding: 24px;
+  margin-bottom: 30px;
+}
+
+.sectionHeader {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #60a6fa;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #334155;
+}
+
+.sectionDivider {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #60a6fa;
+  margin: 30px 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #334155;
+}
+
+.auctionTable {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auctionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  padding: 16px;
+  gap: 16px;
+}
+
+.auctionInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.auctionName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+}
+
+.variant {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.auctionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.buttonSmall {
+  padding: 10px 20px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .controlsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .auctionRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .buttonSmall {
+    width: 100%;
+  }
+
+  .auctionMeta {
+    gap: 8px;
+  }
+}
+

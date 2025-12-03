@@ -1,0 +1,91 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+}
+
+.countdownContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 60px;
+}
+
+.label {
+  color: #fff;
+  font-size: clamp(11px, 3vw, 24px);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 700;
+  /* text-shadow: 0 0 20px rgba(96, 165, 250, 0.8); */
+}
+
+.countdown {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.time {
+  font-size: clamp(90px, 20vw, 180px); /* Responsive: 80px min, 20vw fluid, 180px max */
+  color: #60a5fa;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  min-width: 1ch; /* Reserve space for "XX:X" */
+  display: inline-block;
+  text-align: center;
+  animation: flashRedBlue 1s infinite ease-in-out;
+}
+
+.blurDigit {
+  font-size: clamp(90px, 20vw, 180px); /* Match .time font size */
+  color: #60a5fa;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+  text-align: center;
+  animation: flashRedBlue 1s infinite ease-in-out;
+}
+
+.message {
+  color: #f8fafc;
+  font-size: clamp(12px, 3.5vw, 16px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 500;
+  text-align: center;
+  animation: pulse 2s infinite;
+  min-height: 24px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes flashRedBlue {
+  0%, 100% {
+    color: #60a5fa; /* Blue */
+    text-shadow: 0 0 40px rgba(96, 165, 250, 0.8),
+                 0 0 80px rgba(96, 165, 250, 0.4);
+  }
+  50% {
+    color: #ef4444; /* Red */
+    text-shadow: 0 0 40px rgba(239, 68, 68, 0.8),
+                 0 0 80px rgba(239, 68, 68, 0.4);
+  }
+}
+
