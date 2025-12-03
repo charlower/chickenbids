@@ -22,6 +22,7 @@ import LaunchCountdown from './components/LaunchCountdown';
 import MobileSidebar from './components/MobileSidebar';
 import CommsPortrait from './components/CommsPortrait';
 import NowPlaying from './components/NowPlaying';
+import AudioPermissionModal from './components/AudioPermissionModal';
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const BID_LOCK_DURATION_MS = 60000; // 10 seconds for testing (change to 60000 for prod)
@@ -110,6 +111,10 @@ export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
   const [auctionMusicStarted, setAuctionMusicStarted] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [shouldStartAmbient, setShouldStartAmbient] = useState(false);
+  const [audioPermissionModalOpen, setAudioPermissionModalOpen] =
+    useState(false);
   const [recentActivity, setRecentActivity] = useState<
     Array<{
       type: 'win' | 'bid';
@@ -157,7 +162,61 @@ export default function Home() {
 
   useEffect(() => {
     setTimeout(() => setIsMounted(true), 0);
+
+    // Check if user has already made audio choice
+    const hasChosenAudio = localStorage.getItem('cb_audio_permission');
+    if (!hasChosenAudio) {
+      setAudioPermissionModalOpen(true);
+    } else if (hasChosenAudio === 'allowed') {
+      setAudioEnabled(true);
+    }
   }, []);
+
+  // Block scroll when any modal or sidebar is open
+  useEffect(() => {
+    const isAnyModalOpen =
+      auctionEndModalOpen ||
+      registerModalOpen ||
+      loginModalOpen ||
+      lootIntelModalOpen ||
+      profileModalOpen ||
+      bidLockModalOpen ||
+      launchCountdownOpen ||
+      mobileSidebarOpen ||
+      interstitialOpen ||
+      audioPermissionModalOpen;
+
+    if (isAnyModalOpen) {
+      // Block scroll on multiple levels for cross-browser compatibility
+      const scrollY = window.scrollY;
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.position = 'fixed';
+      document.documentElement.style.top = `-${scrollY}px`;
+      document.documentElement.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        // Restore scroll position
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.position = '';
+        document.documentElement.style.top = '';
+        document.documentElement.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [
+    auctionEndModalOpen,
+    registerModalOpen,
+    loginModalOpen,
+    lootIntelModalOpen,
+    profileModalOpen,
+    bidLockModalOpen,
+    launchCountdownOpen,
+    mobileSidebarOpen,
+    interstitialOpen,
+    audioPermissionModalOpen,
+  ]);
 
   // Fetch recent wins
   useEffect(() => {
@@ -596,8 +655,40 @@ export default function Home() {
     currentAuction?.floor_price,
   ]);
 
+  // Trigger ambient music when audio is first enabled
+  useEffect(() => {
+    if (audioEnabled && shouldStartAmbient) {
+      setShouldStartAmbient(false);
+      // Immediately start appropriate ambient music based on current state
+      if (timeWindow === 'no-auction' && !auctionEndModalOpen) {
+        playAmbient('no-auction');
+      } else if (timeWindow === 'standby') {
+        const startTime = currentAuction
+          ? new Date(currentAuction.start_at).getTime()
+          : null;
+        const msUntilStart = startTime ? startTime - now : null;
+        if (msUntilStart !== null && msUntilStart < ONE_HOUR_MS) {
+          playAmbient('lobby-open');
+        } else {
+          playAmbient('lobby-closed');
+        }
+      }
+    }
+  }, [
+    audioEnabled,
+    shouldStartAmbient,
+    timeWindow,
+    auctionEndModalOpen,
+    playAmbient,
+    currentAuction,
+    now,
+  ]);
+
   // Play ambient music based on timeWindow
   useEffect(() => {
+    // Don't play music until audio is enabled
+    if (!audioEnabled) return;
+
     if (timeWindow === 'no-auction') {
       // Don't start ambient music if auction end modal is open
       if (!auctionEndModalOpen) {
@@ -645,6 +736,7 @@ export default function Home() {
     launchCountdownOpen,
     auctionMusicStarted,
     auctionEndModalOpen,
+    audioEnabled,
   ]);
 
   // Detect when auction is about to go live (within 35.14 seconds)
@@ -657,11 +749,20 @@ export default function Home() {
     // If auction starts within 35.14 seconds, show countdown
     if (timeUntilStart > 0 && timeUntilStart <= 35140 && !launchCountdownOpen) {
       setLaunchCountdownOpen(true);
-      stopAmbient(); // Stop ambient music before starting auction music
-      startMusic(); // Start intro music
-      setAuctionMusicStarted(true); // Mark that auction music has started
+      if (audioEnabled) {
+        stopAmbient(); // Stop ambient music before starting auction music
+        startMusic(); // Start intro music
+        setAuctionMusicStarted(true); // Mark that auction music has started
+      }
     }
-  }, [currentAuction, now, startMusic, stopAmbient, launchCountdownOpen]);
+  }, [
+    currentAuction,
+    now,
+    startMusic,
+    stopAmbient,
+    launchCountdownOpen,
+    audioEnabled,
+  ]);
 
   // When countdown completes, hide it
   const handleLaunchComplete = () => {
@@ -671,7 +772,7 @@ export default function Home() {
 
   // Trigger voice clips based on price remaining
   useEffect(() => {
-    if (!isAuctionLive || !currentAuction || !price) return;
+    if (!isAuctionLive || !currentAuction || !price || !audioEnabled) return;
 
     const percentRemaining =
       ((price - currentAuction.floor_price) /
@@ -700,7 +801,7 @@ export default function Home() {
       // Triggers when percentage is 10% or lower
       playVoice('one-last-try', '/assets/audio/one-last-try.mp3');
     }
-  }, [price, currentAuction, isAuctionLive, playVoice]);
+  }, [price, currentAuction, isAuctionLive, playVoice, audioEnabled]);
 
   // Reset voices when auction resets
   useEffect(() => {
@@ -2091,6 +2192,17 @@ export default function Home() {
           <p>{tipsCopy}</p>
         </div>
       </MobileSidebar>
+
+      {/* Audio Permission Modal */}
+      <AudioPermissionModal
+        isOpen={audioPermissionModalOpen}
+        onClose={() => setAudioPermissionModalOpen(false)}
+        onAllow={() => {
+          setAudioEnabled(true);
+          setShouldStartAmbient(true);
+        }}
+        onDeny={() => setAudioEnabled(false)}
+      />
     </div>
   );
 }

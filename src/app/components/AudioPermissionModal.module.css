@@ -1,0 +1,196 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+}
+
+.panel {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 2px solid #3b82f6;
+  padding: 40px;
+  max-width: 480px;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(59, 130, 246, 0.4);
+}
+
+.header {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #60a5fa;
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+.icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 20px rgba(96, 165, 250, 0.3));
+}
+
+.message {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.featureList {
+  list-style: none;
+  margin: 24px 0;
+  padding: 0;
+}
+
+.featureList li {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  letter-spacing: 0.08em;
+}
+
+.featureList li:last-child {
+  border-bottom: none;
+}
+
+.hint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: #60a5fa;
+  margin-top: 20px;
+  margin-bottom: 28px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.buttonPrimary {
+  width: 100%;
+  border: none;
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+  color: #e5e7eb;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 14px 32px;
+  font-size: 16px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.1s linear;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+}
+
+.buttonPrimary:hover {
+  scale: 1.02;
+}
+
+.buttonPrimary:hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(248, 250, 252, 0.5) 50%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  animation: sweep 1s infinite;
+}
+
+.buttonPrimary:active {
+  transform: scale(0.98);
+  filter: brightness(0.9);
+  transition: all 0.05s ease-out;
+}
+
+.buttonSecondary {
+  width: 100%;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 12px 32px;
+  font-size: 12px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+}
+
+.buttonSecondary:hover {
+  background: rgba(51, 65, 85, 0.3);
+  border-color: #475569;
+  color: #cbd5e1;
+  scale: 1.01;
+}
+
+.buttonSecondary:active {
+  transform: scale(0.98);
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: 32px 24px;
+    max-width: 90vw;
+  }
+
+  .icon {
+    font-size: 48px;
+  }
+
+  .header {
+    font-size: 12px;
+  }
+
+  .message {
+    font-size: 11px;
+  }
+
+  .featureList li {
+    font-size: 11px;
+  }
+
+  .hint {
+    font-size: 11px;
+  }
+}
+
