@@ -713,12 +713,6 @@ export default function Home() {
     if (isAuctionLive) return;
     const resetId = requestAnimationFrame(() => {
       const startPrice = currentAuction?.start_price || 0;
-      console.log(
-        'Resetting price to start_price:',
-        startPrice,
-        'currentAuction:',
-        currentAuction
-      );
       setPrice(startPrice);
       setDisplayPrice(startPrice);
       setLockedIn(null);

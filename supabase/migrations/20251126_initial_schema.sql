@@ -608,6 +608,27 @@ WITH CHECK (
   auth.role() = 'authenticated'
 );
 
+-- Allow anonymous users to read products
+CREATE POLICY "Allow anonymous read products" 
+ON products 
+FOR SELECT 
+TO anon 
+USING (active = true);
+
+-- Allow anonymous users to read auctions
+CREATE POLICY "Allow anonymous read auctions" 
+ON auctions 
+FOR SELECT 
+TO anon 
+USING (status IN ('scheduled', 'live'));
+
+-- Allow anonymous users to read product images
+CREATE POLICY "Allow anonymous read product_images" 
+ON product_images 
+FOR SELECT 
+TO anon 
+USING (true);
+
 
 -- Grant execute permission
 GRANT EXECUTE ON FUNCTION complete_bid_for_winner(uuid) TO service_role;
