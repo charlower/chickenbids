@@ -196,9 +196,16 @@ export default function RegisterModal({
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={styles.header}>
-          &gt;&gt; PLAYER REGISTRATION &lt;&lt;
-        </div>
+        <button
+          type='button'
+          className={styles.closeButton}
+          onClick={onClose}
+          aria-label='Close'
+        >
+          ×
+        </button>
+
+        <div className={styles.header}>&gt;&gt; REGISTRATION &lt;&lt;</div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>

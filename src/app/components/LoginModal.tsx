@@ -78,6 +78,15 @@ export default function LoginModal({
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type='button'
+          className={styles.closeButton}
+          onClick={onClose}
+          aria-label='Close'
+        >
+          ×
+        </button>
+
         <div className={styles.header}>&gt;&gt; PLAYER LOGIN &lt;&lt;</div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
