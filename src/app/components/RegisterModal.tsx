@@ -295,7 +295,8 @@ export default function RegisterModal({
 
           {success && (
             <div className={styles.success}>
-              ACCOUNT CREATED! Check your email to confirm and login.
+              ACCOUNT CREATED! Check your email to confirm and login. Please
+              check your spam folder if you don&apos;t see it.
             </div>
           )}
 
@@ -307,8 +308,8 @@ export default function RegisterModal({
             {loading
               ? 'CREATING ACCOUNT...'
               : success
-              ? 'CHECK YOUR EMAIL'
-              : 'REGISTER'}
+                ? 'CHECK YOUR EMAIL'
+                : 'REGISTER'}
           </button>
 
           <div className={styles.switchPrompt}>

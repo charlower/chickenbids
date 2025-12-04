@@ -74,7 +74,7 @@ export default function Home() {
   // Audio hook
   const {
     setAudioMode,
-    preloadAllTracks,
+    unlockAudio,
     playVoice,
     resetVoices,
     playEndMusic,
@@ -653,7 +653,11 @@ export default function Home() {
 
   const desiredAudioMode = useMemo(() => {
     if (!audioEnabled || auctionEndModalOpen) return 'silent';
-    if (countdownAudioActive) return 'countdown';
+
+    if (launchCountdownOpen) {
+      return countdownAudioActive ? 'countdown' : 'auction';
+    }
+
     if (timeWindow === 'live') return 'auction';
     if (timeWindow === 'no-auction') return 'ambient-no-auction';
     if (timeWindow === 'standby') {
@@ -669,6 +673,7 @@ export default function Home() {
   }, [
     audioEnabled,
     auctionEndModalOpen,
+    launchCountdownOpen,
     countdownAudioActive,
     timeWindow,
     currentAuction,
@@ -715,6 +720,7 @@ export default function Home() {
 
   // When countdown completes, hide it
   const handleLaunchComplete = () => {
+    setCountdownAudioActive(false);
     setLaunchCountdownOpen(false);
   };
 
@@ -2147,7 +2153,7 @@ export default function Home() {
         onClose={() => setAudioPermissionModalOpen(false)}
         onAllow={() => setAudioEnabled(true)}
         onDeny={() => setAudioEnabled(false)}
-        preloadAudioTracks={preloadAllTracks}
+        unlockAudio={unlockAudio}
       />
     </div>
   );

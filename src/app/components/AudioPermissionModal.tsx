@@ -8,7 +8,7 @@ type AudioPermissionModalProps = {
   onAllow: () => void;
   onDeny: () => void;
   onClose: () => void;
-  preloadAudioTracks: () => Promise<void>;
+  unlockAudio: () => void;
 };
 
 export default function AudioPermissionModal({
@@ -16,47 +16,27 @@ export default function AudioPermissionModal({
   onAllow,
   onDeny,
   onClose,
-  preloadAudioTracks,
+  unlockAudio,
 }: AudioPermissionModalProps) {
-  const handleAllow = () => {
-    console.log('🎯 Enable Comms clicked');
+  // This MUST be a direct click handler, not through any abstraction
+  const handleEnableClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-    let didComplete = false;
+    console.log('🎯 ENABLE COMMS button clicked');
 
-    const completeAction = () => {
-      if (!didComplete) {
-        didComplete = true;
-        console.log('✅ Completing audio permission action');
-        onClose();
-        onAllow();
-      }
-    };
+    // Call unlock SYNCHRONOUSLY - this is the user gesture
+    unlockAudio();
 
-    console.log('🔓 Unlocking audio for all tracks...');
-    const unlockPromise = preloadAudioTracks();
-
-    // Wait for all unlocks or timeout
-    const timeoutId = setTimeout(() => {
-      console.log('⏱️ Audio unlock timeout - proceeding anyway');
-      completeAction();
-    }, 800);
-
-    unlockPromise
-      .then(() => {
-        console.log('🔊 All audio unlocked - COMMS ONLINE');
-      })
-      .catch((err) => {
-        console.error('⚠️ Failed to unlock audio:', err);
-      })
-      .finally(() => {
-        clearTimeout(timeoutId);
-        completeAction();
-      });
+    // Then update React state
+    onAllow();
+    onClose();
   };
 
-  const handleDeny = () => {
-    onClose();
+  const handleDenyClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     onDeny();
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -96,10 +76,18 @@ export default function AudioPermissionModal({
           </div>
 
           <div className={styles.buttons}>
-            <button className={styles.buttonPrimary} onClick={handleAllow}>
+            <button
+              className={styles.buttonPrimary}
+              onClick={handleEnableClick}
+              type='button'
+            >
               🔊 ENABLE COMMS
             </button>
-            <button className={styles.buttonSecondary} onClick={handleDeny}>
+            <button
+              className={styles.buttonSecondary}
+              onClick={handleDenyClick}
+              type='button'
+            >
               CONTINUE SILENT
             </button>
           </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import styles from './VolumeControl.module.css';
 
 type VolumeControlProps = {
@@ -13,6 +14,26 @@ export default function VolumeControl({
   onChange,
   label,
 }: VolumeControlProps) {
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Detect iOS
+    const iOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsIOS(iOS);
+  }, []);
+
+  // On iOS, show message instead of slider
+  if (isIOS) {
+    return (
+      <div className={styles.content}>
+        <span className={styles.volumeLabel}>{label}</span>
+        <span className={styles.iosMessage}>USE DEVICE VOLUME</span>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.content}>
       <span className={styles.volumeLabel}>{label}</span>

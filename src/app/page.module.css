@@ -1594,4 +1594,23 @@
     padding-top: 36px;
     padding-bottom: 36px;
   }
+
+  /* Disable heavy background animations on mobile for performance */
+  .pageScanning::before,
+  .pageScanning::after {
+    display: none;
+  }
+
+  .pageLive::before,
+  .pageLive::after,
+  .pageStandby::before,
+  .pageStandby::after {
+    animation: none;
+    opacity: 0.3;
+  }
+
+  /* Reduce other animations */
+  .playerButtonPulse {
+    animation: none;
+  }
 }

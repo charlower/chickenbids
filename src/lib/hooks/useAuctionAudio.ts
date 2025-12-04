@@ -13,12 +13,15 @@ type VoiceClip =
   | 'pathetic'
   | 'one-last-try';
 
-type AudioTrackId =
+type TrackId =
   | 'ambient:no-auction'
   | 'ambient:lobby-early'
   | 'ambient:lobby-late'
   | 'countdown:intro'
-  | 'auction:loop';
+  | 'auction:loop'
+  | 'end:win'
+  | 'end:lose'
+  | 'end:failed';
 
 export type AudioMode =
   | 'silent'
@@ -37,43 +40,62 @@ type TrackConfig = {
 const AUDIO_BASE =
   'https://idzzbnumpmqozrfnokbv.supabase.co/storage/v1/object/public/audio/';
 
-const trackUrl = (file: string) => `${AUDIO_BASE}${file}`;
-
-const TRACKS: Record<AudioTrackId, TrackConfig> = {
+const TRACKS: Record<TrackId, TrackConfig> = {
   'ambient:no-auction': {
-    file: trackUrl('antarctique-ambiance.mp3'),
+    file: `${AUDIO_BASE}antarctique-ambiance.mp3`,
     loop: true,
     label: 'ANTARCTIQUE AMBIANCE',
   },
   'ambient:lobby-early': {
-    file: trackUrl('incubation-station.mp3'),
+    file: `${AUDIO_BASE}incubation-station.mp3`,
     loop: true,
     label: 'INCUBATION STATION',
   },
   'ambient:lobby-late': {
-    file: trackUrl('sultry-poultry.mp3'),
+    file: `${AUDIO_BASE}sultry-poultry.mp3`,
     loop: true,
     label: 'SULTRY POULTRY',
   },
   'countdown:intro': {
-    file: trackUrl('auction-intro.mp3'),
+    file: `${AUDIO_BASE}auction-intro.mp3`,
     loop: false,
     label: 'AUCTION COUNTDOWN',
   },
   'auction:loop': {
-    file: trackUrl('auction-live-bg-loop.mp3'),
+    file: `${AUDIO_BASE}auction-live-bg-loop.mp3`,
     loop: true,
     label: 'FOWL PLAY',
+  },
+  'end:win': {
+    file: `${AUDIO_BASE}auction-win.mp3`,
+    loop: false,
+    label: 'VICTORY',
+  },
+  'end:lose': {
+    file: `${AUDIO_BASE}auction-lost.mp3`,
+    loop: false,
+    label: 'DEFEAT',
+  },
+  'end:failed': {
+    file: `${AUDIO_BASE}auction-failed.mp3`,
+    loop: false,
+    label: 'NO WINNER',
   },
 };
 
 const COUNTDOWN_DURATION_MS = 35425;
 
+// Global state - blessed audio elements
+let audioContext: AudioContext | null = null;
+let musicPlayer: HTMLAudioElement | null = null;
+let voicePlayer: HTMLAudioElement | null = null;
+let isUnlocked = false;
+
 export function useAuctionAudio() {
-  const trackRefs = useRef<Map<AudioTrackId, HTMLAudioElement>>(new Map());
-  const currentTrackRef = useRef<AudioTrackId | null>(null);
+  const currentTrackRef = useRef<TrackId | null>(null);
   const countdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const modeRef = useRef<AudioMode>('silent');
+  const pendingModeRef = useRef<AudioMode | null>(null);
 
   const [nowPlaying, setNowPlaying] = useState<{
     name: string;
@@ -86,151 +108,221 @@ export function useAuctionAudio() {
 
   const musicVolumeRef = useRef(0.5);
   const voiceVolumeRef = useRef(0.5);
-  const activeVoicesRef = useRef<HTMLAudioElement[]>([]);
 
-  const ensureTrack = useCallback((id: AudioTrackId) => {
-    if (!trackRefs.current.has(id)) {
-      const config = TRACKS[id];
-      const audio = new Audio(config.file);
-      audio.crossOrigin = 'anonymous';
-      audio.preload = 'auto';
-      audio.loop = config.loop;
-      audio.volume = musicVolumeRef.current * 0.7;
-      trackRefs.current.set(id, audio);
+  const stopMusic = useCallback(() => {
+    if (musicPlayer) {
+      musicPlayer.pause();
+      musicPlayer.currentTime = 0;
     }
-    return trackRefs.current.get(id)!;
-  }, []);
-
-  const stopCurrentTrack = useCallback(() => {
-    if (currentTrackRef.current) {
-      const current = trackRefs.current.get(currentTrackRef.current);
-      if (current) {
-        current.pause();
-        current.currentTime = 0;
-      }
-      currentTrackRef.current = null;
-    }
+    currentTrackRef.current = null;
     setNowPlaying(null);
   }, []);
 
-  const playTrack = useCallback(
-    async (id: AudioTrackId) => {
-      const config = TRACKS[id];
-      if (!config) return;
+  const playTrack = useCallback((id: TrackId) => {
+    if (!isUnlocked || !musicPlayer) {
+      console.warn('⚠️ Audio not ready');
+      return;
+    }
 
-      if (currentTrackRef.current === id) {
-        const existing = trackRefs.current.get(id);
-        if (existing && !existing.paused) {
-          setNowPlaying({ name: config.label, artist: 'ADMIN' });
-          return;
-        }
-      }
+    const config = TRACKS[id];
+    if (!config) return;
 
-      stopCurrentTrack();
-      const audio = ensureTrack(id);
-      audio.loop = config.loop;
-      audio.volume = musicVolumeRef.current * 0.7;
-      audio.currentTime = 0;
-      currentTrackRef.current = id;
-      setNowPlaying({ name: config.label, artist: 'ADMIN' });
+    // Already playing this track
+    if (currentTrackRef.current === id && !musicPlayer.paused) {
+      return;
+    }
 
-      try {
-        await audio.play();
-      } catch (err) {
-        console.error(`❌ Failed to play ${config.label}:`, err);
-      }
-    },
-    [ensureTrack, stopCurrentTrack]
-  );
+    console.log(`🎵 Playing: ${config.label}`);
 
-  const clearCountdown = () => {
+    // Stop current
+    musicPlayer.pause();
+
+    // Switch source and play
+    musicPlayer.src = config.file;
+    musicPlayer.loop = config.loop;
+    musicPlayer.volume = musicVolumeRef.current * 0.7;
+    musicPlayer.currentTime = 0;
+    currentTrackRef.current = id;
+    setNowPlaying({ name: config.label, artist: 'ADMIN' });
+
+    musicPlayer.play().catch((err) => {
+      console.error(`❌ Music play failed:`, err);
+    });
+  }, []);
+
+  const clearCountdown = useCallback(() => {
     if (countdownTimeoutRef.current) {
       clearTimeout(countdownTimeoutRef.current);
       countdownTimeoutRef.current = null;
     }
-  };
+  }, []);
 
-  const setAudioMode = useCallback(
+  const applyMode = useCallback(
     (mode: AudioMode) => {
-      if (modeRef.current === mode) return;
-      console.log('🎚️ Audio mode:', modeRef.current, '→', mode);
+      console.log('🎚️ Mode:', mode);
       modeRef.current = mode;
       clearCountdown();
 
       if (mode === 'silent') {
-        stopCurrentTrack();
+        stopMusic();
         return;
       }
 
-      if (mode === 'ambient-no-auction') {
-        playTrack('ambient:no-auction');
-      } else if (mode === 'ambient-lobby-early') {
-        playTrack('ambient:lobby-early');
-      } else if (mode === 'ambient-lobby-late') {
-        playTrack('ambient:lobby-late');
-      } else if (mode === 'countdown') {
+      const modeToTrack: Record<string, TrackId> = {
+        'ambient-no-auction': 'ambient:no-auction',
+        'ambient-lobby-early': 'ambient:lobby-early',
+        'ambient-lobby-late': 'ambient:lobby-late',
+        countdown: 'countdown:intro',
+        auction: 'auction:loop',
+      };
+
+      const trackId = modeToTrack[mode];
+      if (!trackId) return;
+
+      if (mode === 'countdown') {
         playTrack('countdown:intro');
         countdownTimeoutRef.current = setTimeout(() => {
           countdownTimeoutRef.current = null;
           modeRef.current = 'auction';
           playTrack('auction:loop');
         }, COUNTDOWN_DURATION_MS);
-      } else if (mode === 'auction') {
-        playTrack('auction:loop');
+      } else {
+        playTrack(trackId);
       }
     },
-    [playTrack, stopCurrentTrack]
+    [playTrack, stopMusic, clearCountdown]
   );
 
-  const preloadAllTracks = useCallback(async () => {
-    const ids = Object.keys(TRACKS) as AudioTrackId[];
-    await Promise.all(
-      ids.map(async (id) => {
-        const audio = ensureTrack(id);
-        try {
-          audio.volume = 0;
-          await audio.play();
-        } catch {
-          // Ignore autoplay rejection
-        } finally {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.volume = musicVolumeRef.current * 0.7;
-        }
-      })
-    );
-  }, [ensureTrack]);
+  const setAudioMode = useCallback(
+    (mode: AudioMode) => {
+      if (modeRef.current === mode && !pendingModeRef.current) return;
+
+      if (!isUnlocked) {
+        console.log('🔒 Queuing mode:', mode);
+        pendingModeRef.current = mode;
+        return;
+      }
+
+      pendingModeRef.current = null;
+      applyMode(mode);
+    },
+    [applyMode]
+  );
+
+  /**
+   * MUST be called from user click/tap.
+   * Creates and unlocks both music and voice players.
+   */
+  const unlockAudio = useCallback(() => {
+    if (isUnlocked) {
+      console.log('🔊 Already unlocked');
+      if (pendingModeRef.current) {
+        applyMode(pendingModeRef.current);
+        pendingModeRef.current = null;
+      }
+      return;
+    }
+
+    console.log('🔓 Unlocking audio...');
+
+    try {
+      // Create AudioContext
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+
+      if (!audioContext) {
+        audioContext = new AudioContextClass();
+      }
+
+      // Resume if suspended
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      // Play a silent oscillator to fully unlock
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      gain.gain.value = 0;
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.01);
+
+      // Create the music player
+      if (!musicPlayer) {
+        musicPlayer = new Audio();
+        musicPlayer.crossOrigin = 'anonymous';
+        musicPlayer.preload = 'auto';
+      }
+
+      // Create the voice player (separate element for voices)
+      if (!voicePlayer) {
+        voicePlayer = new Audio();
+        voicePlayer.crossOrigin = 'anonymous';
+        voicePlayer.preload = 'auto';
+      }
+
+      isUnlocked = true;
+      console.log('✅ Audio unlocked (music + voice players ready)');
+
+      // Apply pending mode
+      if (pendingModeRef.current) {
+        const mode = pendingModeRef.current;
+        pendingModeRef.current = null;
+        setTimeout(() => applyMode(mode), 100);
+      }
+    } catch (err) {
+      console.error('❌ Unlock error:', err);
+      // Try to proceed anyway
+      if (!musicPlayer) {
+        musicPlayer = new Audio();
+        musicPlayer.crossOrigin = 'anonymous';
+      }
+      if (!voicePlayer) {
+        voicePlayer = new Audio();
+        voicePlayer.crossOrigin = 'anonymous';
+      }
+      isUnlocked = true;
+    }
+  }, [applyMode]);
 
   const playVoice = useCallback(
     (clip: VoiceClip, src: string) => {
       if (voicesPlayed.has(clip)) return;
+      if (!isUnlocked || !voicePlayer) {
+        console.warn('⚠️ Voice player not ready');
+        return;
+      }
 
-      activeVoicesRef.current.forEach((voice) => {
-        voice.pause();
-        voice.currentTime = 0;
-      });
-      activeVoicesRef.current = [];
+      console.log(`🗣️ Playing voice: ${clip}`);
 
-      const voice = new Audio(src);
-      voice.crossOrigin = 'anonymous';
-      voice.preload = 'auto';
-      voice.volume = voiceVolumeRef.current;
-      activeVoicesRef.current.push(voice);
+      // Stop current voice
+      voicePlayer.pause();
+      voicePlayer.currentTime = 0;
+
+      // Set up the new voice
+      voicePlayer.src = src;
+      voicePlayer.volume = voiceVolumeRef.current;
+      voicePlayer.loop = false;
+
+      // Clear previous event listeners
+      voicePlayer.onended = () => {
+        setActiveVoice(null);
+      };
+
       setActiveVoice(clip);
 
-      voice.addEventListener('ended', () => {
-        activeVoicesRef.current = activeVoicesRef.current.filter(
-          (v) => v !== voice
-        );
-        setActiveVoice((current) => (current === clip ? null : current));
-      });
-
-      voice
+      voicePlayer
         .play()
         .then(() => {
           setVoicesPlayed((prev) => new Set(prev).add(clip));
         })
-        .catch((err) => console.error(`Voice ${clip} play failed:`, err));
+        .catch((err) => {
+          console.error(`❌ Voice play failed:`, err);
+          setActiveVoice(null);
+        });
     },
     [voicesPlayed]
   );
@@ -242,60 +334,61 @@ export function useAuctionAudio() {
   const playEndMusic = useCallback(
     (outcome: 'win' | 'lose' | 'failed') => {
       clearCountdown();
-      stopCurrentTrack();
+      stopMusic();
       modeRef.current = 'silent';
 
-      activeVoicesRef.current.forEach((voice) => {
-        voice.pause();
-        voice.currentTime = 0;
-      });
-      activeVoicesRef.current = [];
+      // Stop voice
+      if (voicePlayer) {
+        voicePlayer.pause();
+        voicePlayer.currentTime = 0;
+      }
       setActiveVoice(null);
 
-      const map = {
-        win: trackUrl('auction-win.mp3'),
-        lose: trackUrl('auction-lost.mp3'),
-        failed: trackUrl('auction-failed.mp3'),
+      if (!isUnlocked || !musicPlayer) return;
+
+      const trackMap: Record<string, TrackId> = {
+        win: 'end:win',
+        lose: 'end:lose',
+        failed: 'end:failed',
       };
 
-      const audio = new Audio(map[outcome]);
-      audio.volume = musicVolumeRef.current;
-      audio.play().catch((err) => console.error('End music failed:', err));
+      playTrack(trackMap[outcome]);
     },
-    [stopCurrentTrack]
+    [stopMusic, clearCountdown, playTrack]
   );
 
   const setMasterMusicVolume = useCallback((value: number) => {
     const clamped = Math.max(0, Math.min(1, value));
     setMusicVolume(clamped);
     musicVolumeRef.current = clamped;
-    trackRefs.current.forEach((audio) => {
-      audio.volume = clamped * 0.7;
-    });
+    if (musicPlayer && !musicPlayer.paused) {
+      musicPlayer.volume = clamped * 0.7;
+    }
   }, []);
 
   const setMasterVoiceVolume = useCallback((value: number) => {
     const clamped = Math.max(0, Math.min(1, value));
     setVoiceVolume(clamped);
     voiceVolumeRef.current = clamped;
+    if (voicePlayer && !voicePlayer.paused) {
+      voicePlayer.volume = clamped;
+    }
   }, []);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    return () => {
       clearCountdown();
-      stopCurrentTrack();
-      activeVoicesRef.current.forEach((voice) => {
-        voice.pause();
-        voice.currentTime = 0;
-      });
-      activeVoicesRef.current = [];
-    },
-    [stopCurrentTrack]
-  );
+      stopMusic();
+      if (voicePlayer) {
+        voicePlayer.pause();
+        voicePlayer.currentTime = 0;
+      }
+    };
+  }, [stopMusic, clearCountdown]);
 
   return {
     setAudioMode,
-    preloadAllTracks,
+    unlockAudio,
     playVoice,
     resetVoices,
     playEndMusic,

@@ -163,10 +163,10 @@ export default function AuctionEndModal({
           {!hasWinner
             ? 'BETTER LUCK NEXT TIME. STAY LOCKED IN FOR THE NEXT DROP. FOLLOW @CHICKENBIDS FOR AUCTION INTEL.'
             : isWinner
-            ? 'TARGET SECURED. PAYMENT PROCESSING. STAND BY FOR DELIVERY BRIEF VIA EMAIL.'
-            : isLoggedIn
-            ? 'ANOTHER OPERATOR CLAIMED THE TARGET. STAY ALERT FOR NEXT DROP.'
-            : 'AUCTION CONCLUDED. REGISTER TO SECURE FUTURE TARGETS.'}
+              ? "TARGET SECURED. PAYMENT PROCESSING. STAND BY FOR DELIVERY BRIEF VIA EMAIL. PLEASE CHECK YOUR SPAM FOLDER IF YOU DON'T SEE IT."
+              : isLoggedIn
+                ? 'ANOTHER OPERATOR CLAIMED THE TARGET. STAY ALERT FOR NEXT DROP.'
+                : 'AUCTION CONCLUDED. REGISTER TO SECURE FUTURE TARGETS.'}
         </div>
 
         <button className={styles.button} onClick={onClose}>
