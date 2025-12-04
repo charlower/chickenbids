@@ -2109,7 +2109,7 @@ export default function Home() {
             <span>{stageCopy.badge}</span>
           </div>
           <div className={styles.infoRow}>
-            <span>UPCOMING AUCTION</span>
+            <span>AUCTION ETA</span>
             <span>
               {timeWindow === 'no-auction' ? 'CLASSIFIED' : dropTimeLabel}
             </span>
