@@ -77,7 +77,7 @@
 /* Safari-specific fix */
 @supports (-webkit-hyphens: none) {
   .closeButton span {
-    top: -1.5px;
+    top: -0.75px;
   }
 }
 

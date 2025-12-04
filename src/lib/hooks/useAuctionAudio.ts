@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type VoiceClip =
   | 'my-loot'
@@ -13,272 +13,298 @@ type VoiceClip =
   | 'pathetic'
   | 'one-last-try';
 
-type AmbientTrack = {
-  name: string;
-  artist: string;
+type AudioTrackId =
+  | 'ambient:no-auction'
+  | 'ambient:lobby-early'
+  | 'ambient:lobby-late'
+  | 'countdown:intro'
+  | 'auction:loop';
+
+export type AudioMode =
+  | 'silent'
+  | 'ambient-no-auction'
+  | 'ambient-lobby-early'
+  | 'ambient-lobby-late'
+  | 'countdown'
+  | 'auction';
+
+type TrackConfig = {
   file: string;
+  loop: boolean;
+  label: string;
 };
 
-const AMBIENT_TRACKS: Record<string, AmbientTrack> = {
-  'no-auction': {
-    name: 'ANTARCTIQUE AMBIANCE',
-    artist: 'ADMIN',
-    file: '/assets/audio/antarctique-ambiance.mp3',
+const AUDIO_BASE =
+  'https://idzzbnumpmqozrfnokbv.supabase.co/storage/v1/object/public/audio/';
+
+const trackUrl = (file: string) => `${AUDIO_BASE}${file}`;
+
+const TRACKS: Record<AudioTrackId, TrackConfig> = {
+  'ambient:no-auction': {
+    file: trackUrl('antarctique-ambiance.mp3'),
+    loop: true,
+    label: 'ANTARCTIQUE AMBIANCE',
   },
-  'lobby-closed': {
-    name: 'INCUBATION STATION',
-    artist: 'ADMIN',
-    file: '/assets/audio/incubation-station.mp3',
+  'ambient:lobby-early': {
+    file: trackUrl('incubation-station.mp3'),
+    loop: true,
+    label: 'INCUBATION STATION',
   },
-  'lobby-open': {
-    name: 'SULTRY POULTRY',
-    artist: 'ADMIN',
-    file: '/assets/audio/sultry-poultry.mp3',
+  'ambient:lobby-late': {
+    file: trackUrl('sultry-poultry.mp3'),
+    loop: true,
+    label: 'SULTRY POULTRY',
   },
-  auction: {
-    name: 'FOWL PLAY',
-    artist: 'ADMIN',
-    file: '/assets/audio/auction-live-bg-loop.mp3',
+  'countdown:intro': {
+    file: trackUrl('auction-intro.mp3'),
+    loop: false,
+    label: 'AUCTION COUNTDOWN',
+  },
+  'auction:loop': {
+    file: trackUrl('auction-live-bg-loop.mp3'),
+    loop: true,
+    label: 'FOWL PLAY',
   },
 };
+
+const COUNTDOWN_DURATION_MS = 35425;
 
 export function useAuctionAudio() {
-  const introRef = useRef<HTMLAudioElement | null>(null);
-  const bgMusicRef = useRef<HTMLAudioElement | null>(null);
-  const ambientRef = useRef<HTMLAudioElement | null>(null); // For ambient music
-  const activeVoicesRef = useRef<HTMLAudioElement[]>([]); // Track active voice clips
-  const musicVolumeRef = useRef(0.5); // Music volume
-  const voiceVolumeRef = useRef(0.5); // Voice volume
-  const [isPlaying, setIsPlaying] = useState(false);
+  const trackRefs = useRef<Map<AudioTrackId, HTMLAudioElement>>(new Map());
+  const currentTrackRef = useRef<AudioTrackId | null>(null);
+  const countdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const modeRef = useRef<AudioMode>('silent');
+
+  const [nowPlaying, setNowPlaying] = useState<{
+    name: string;
+    artist: string;
+  } | null>(null);
+  const [musicVolume, setMusicVolume] = useState(0.5);
+  const [voiceVolume, setVoiceVolume] = useState(0.5);
+  const [activeVoice, setActiveVoice] = useState<VoiceClip | null>(null);
   const [voicesPlayed, setVoicesPlayed] = useState<Set<VoiceClip>>(new Set());
-  const [musicVolume, setMusicVolume] = useState(0.5); // 0-1
-  const [voiceVolume, setVoiceVolume] = useState(0.5); // 0-1
-  const [activeVoice, setActiveVoice] = useState<VoiceClip | null>(null); // Currently playing voice
-  const [nowPlaying, setNowPlaying] = useState<AmbientTrack | null>(null); // Current track info
 
-  // Start auction sequence: intro → background loop
-  const startMusic = () => {
-    if (introRef.current || bgMusicRef.current) return; // Already playing
+  const musicVolumeRef = useRef(0.5);
+  const voiceVolumeRef = useRef(0.5);
+  const activeVoicesRef = useRef<HTMLAudioElement[]>([]);
 
-    // Stop ambient music first
-    stopAmbient();
-
-    // Play intro first
-    const intro = new Audio('/assets/audio/auction-intro.mp3');
-    intro.volume = musicVolumeRef.current * 0.7;
-    introRef.current = intro;
-
-    intro
-      .play()
-      .then(() => {
-        setIsPlaying(true);
-        setNowPlaying(AMBIENT_TRACKS.auction);
-
-        // After exactly 35.425 seconds, start the loop
-        setTimeout(() => {
-          const bgLoop = new Audio('/assets/audio/auction-live-bg-loop.mp3');
-          bgLoop.loop = true;
-          // Use musicVolumeRef to get current volume (not closure)
-          bgLoop.volume = musicVolumeRef.current * 0.7;
-          bgMusicRef.current = bgLoop;
-
-          bgLoop.play().catch((err) => console.error('BG loop failed:', err));
-        }, 35425); // 35 seconds and 425 milliseconds
-      })
-      .catch((err) => console.error('Intro play failed:', err));
-  };
-
-  // Stop all music
-  const stopMusic = () => {
-    if (introRef.current) {
-      introRef.current.pause();
-      introRef.current = null;
+  const ensureTrack = useCallback((id: AudioTrackId) => {
+    if (!trackRefs.current.has(id)) {
+      const config = TRACKS[id];
+      const audio = new Audio(config.file);
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
+      audio.loop = config.loop;
+      audio.volume = musicVolumeRef.current * 0.7;
+      trackRefs.current.set(id, audio);
     }
-    if (bgMusicRef.current) {
-      bgMusicRef.current.pause();
-      bgMusicRef.current = null;
-    }
-    if (ambientRef.current) {
-      ambientRef.current.pause();
-      ambientRef.current = null;
-    }
-    setIsPlaying(false);
-    setNowPlaying(null);
-  };
-
-  // Play ambient music (loops)
-  const playAmbient = (
-    trackKey: 'no-auction' | 'lobby-closed' | 'lobby-open'
-  ) => {
-    const track = AMBIENT_TRACKS[trackKey];
-    if (!track) return;
-
-    // Don't restart if already playing this track
-    if (ambientRef.current && nowPlaying?.name === track.name) return;
-
-    // Stop any existing ambient music
-    if (ambientRef.current) {
-      ambientRef.current.pause();
-      ambientRef.current = null;
-    }
-
-    // Stop auction music if playing
-    if (introRef.current) {
-      introRef.current.pause();
-      introRef.current = null;
-    }
-    if (bgMusicRef.current) {
-      bgMusicRef.current.pause();
-      bgMusicRef.current = null;
-    }
-
-    // Start new ambient track
-    const ambient = new Audio(track.file);
-    ambient.loop = true;
-    ambient.volume = musicVolumeRef.current * 0.6; // Slightly quieter
-    ambientRef.current = ambient;
-
-    ambient
-      .play()
-      .then(() => {
-        setIsPlaying(true);
-        setNowPlaying(track);
-      })
-      .catch((err) => console.error('Ambient play failed:', err));
-  };
-
-  // Stop ambient music only
-  const stopAmbient = () => {
-    if (ambientRef.current) {
-      ambientRef.current.pause();
-      ambientRef.current = null;
-    }
-    setNowPlaying(null);
-  };
-
-  // Play voice clip (one-shot)
-  const playVoice = (clip: VoiceClip, src: string) => {
-    // Don't play if already played
-    if (voicesPlayed.has(clip)) return;
-
-    // Stop any currently playing voices to prevent overlap
-    activeVoicesRef.current.forEach((v) => {
-      v.pause();
-      v.currentTime = 0;
-    });
-    activeVoicesRef.current = [];
-
-    const voice = new Audio(src);
-    voice.volume = voiceVolumeRef.current;
-
-    // Track active voice
-    activeVoicesRef.current.push(voice);
-    setActiveVoice(clip); // Show portrait
-
-    // Remove from active list when it ends
-    voice.addEventListener('ended', () => {
-      const index = activeVoicesRef.current.indexOf(voice);
-      if (index > -1) {
-        activeVoicesRef.current.splice(index, 1);
-      }
-      // Only clear activeVoice if this is the current one
-      setActiveVoice((current) => (current === clip ? null : current));
-    });
-
-    voice
-      .play()
-      .then(() => {
-        setVoicesPlayed((prev) => new Set(prev).add(clip));
-      })
-      .catch((err) => console.error(`Voice ${clip} play failed:`, err));
-  };
-
-  // Reset voices (for new auction)
-  const resetVoices = () => {
-    setVoicesPlayed(new Set());
-  };
-
-  // Play end music (stop all audio first)
-  const playEndMusic = (outcome: 'win' | 'lose' | 'failed') => {
-    // Stop background music
-    if (bgMusicRef.current) {
-      bgMusicRef.current.pause();
-      bgMusicRef.current = null;
-    }
-    if (introRef.current) {
-      introRef.current.pause();
-      introRef.current = null;
-    }
-
-    // Stop all active voice clips
-    activeVoicesRef.current.forEach((voice) => {
-      voice.pause();
-      voice.currentTime = 0;
-    });
-    activeVoicesRef.current = [];
-
-    // Clear active voice to hide portrait
-    setActiveVoice(null);
-
-    // Play appropriate end music
-    const audioMap = {
-      win: '/assets/audio/auction-win.mp3',
-      lose: '/assets/audio/auction-lost.mp3',
-      failed: '/assets/audio/auction-failed.mp3',
-    };
-
-    const endAudio = new Audio(audioMap[outcome]);
-    endAudio.volume = musicVolumeRef.current;
-    endAudio.play().catch((err) => console.error('End music failed:', err));
-
-    setIsPlaying(false);
-  };
-
-  // Update music volume
-  const setMasterMusicVolume = (newVolume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    setMusicVolume(clampedVolume);
-    musicVolumeRef.current = clampedVolume;
-    if (introRef.current) {
-      introRef.current.volume = clampedVolume * 0.7;
-    }
-    if (bgMusicRef.current) {
-      bgMusicRef.current.volume = clampedVolume * 0.7;
-    }
-    if (ambientRef.current) {
-      ambientRef.current.volume = clampedVolume * 0.6;
-    }
-  };
-
-  // Update voice volume
-  const setMasterVoiceVolume = (newVolume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    setVoiceVolume(clampedVolume);
-    voiceVolumeRef.current = clampedVolume;
-  };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopMusic();
-    };
+    return trackRefs.current.get(id)!;
   }, []);
 
+  const stopCurrentTrack = useCallback(() => {
+    if (currentTrackRef.current) {
+      const current = trackRefs.current.get(currentTrackRef.current);
+      if (current) {
+        current.pause();
+        current.currentTime = 0;
+      }
+      currentTrackRef.current = null;
+    }
+    setNowPlaying(null);
+  }, []);
+
+  const playTrack = useCallback(
+    async (id: AudioTrackId) => {
+      const config = TRACKS[id];
+      if (!config) return;
+
+      if (currentTrackRef.current === id) {
+        const existing = trackRefs.current.get(id);
+        if (existing && !existing.paused) {
+          setNowPlaying({ name: config.label, artist: 'ADMIN' });
+          return;
+        }
+      }
+
+      stopCurrentTrack();
+      const audio = ensureTrack(id);
+      audio.loop = config.loop;
+      audio.volume = musicVolumeRef.current * 0.7;
+      audio.currentTime = 0;
+      currentTrackRef.current = id;
+      setNowPlaying({ name: config.label, artist: 'ADMIN' });
+
+      try {
+        await audio.play();
+      } catch (err) {
+        console.error(`❌ Failed to play ${config.label}:`, err);
+      }
+    },
+    [ensureTrack, stopCurrentTrack]
+  );
+
+  const clearCountdown = () => {
+    if (countdownTimeoutRef.current) {
+      clearTimeout(countdownTimeoutRef.current);
+      countdownTimeoutRef.current = null;
+    }
+  };
+
+  const setAudioMode = useCallback(
+    (mode: AudioMode) => {
+      if (modeRef.current === mode) return;
+      console.log('🎚️ Audio mode:', modeRef.current, '→', mode);
+      modeRef.current = mode;
+      clearCountdown();
+
+      if (mode === 'silent') {
+        stopCurrentTrack();
+        return;
+      }
+
+      if (mode === 'ambient-no-auction') {
+        playTrack('ambient:no-auction');
+      } else if (mode === 'ambient-lobby-early') {
+        playTrack('ambient:lobby-early');
+      } else if (mode === 'ambient-lobby-late') {
+        playTrack('ambient:lobby-late');
+      } else if (mode === 'countdown') {
+        playTrack('countdown:intro');
+        countdownTimeoutRef.current = setTimeout(() => {
+          countdownTimeoutRef.current = null;
+          modeRef.current = 'auction';
+          playTrack('auction:loop');
+        }, COUNTDOWN_DURATION_MS);
+      } else if (mode === 'auction') {
+        playTrack('auction:loop');
+      }
+    },
+    [playTrack, stopCurrentTrack]
+  );
+
+  const preloadAllTracks = useCallback(async () => {
+    const ids = Object.keys(TRACKS) as AudioTrackId[];
+    await Promise.all(
+      ids.map(async (id) => {
+        const audio = ensureTrack(id);
+        try {
+          audio.volume = 0;
+          await audio.play();
+        } catch {
+          // Ignore autoplay rejection
+        } finally {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = musicVolumeRef.current * 0.7;
+        }
+      })
+    );
+  }, [ensureTrack]);
+
+  const playVoice = useCallback(
+    (clip: VoiceClip, src: string) => {
+      if (voicesPlayed.has(clip)) return;
+
+      activeVoicesRef.current.forEach((voice) => {
+        voice.pause();
+        voice.currentTime = 0;
+      });
+      activeVoicesRef.current = [];
+
+      const voice = new Audio(src);
+      voice.crossOrigin = 'anonymous';
+      voice.preload = 'auto';
+      voice.volume = voiceVolumeRef.current;
+      activeVoicesRef.current.push(voice);
+      setActiveVoice(clip);
+
+      voice.addEventListener('ended', () => {
+        activeVoicesRef.current = activeVoicesRef.current.filter(
+          (v) => v !== voice
+        );
+        setActiveVoice((current) => (current === clip ? null : current));
+      });
+
+      voice
+        .play()
+        .then(() => {
+          setVoicesPlayed((prev) => new Set(prev).add(clip));
+        })
+        .catch((err) => console.error(`Voice ${clip} play failed:`, err));
+    },
+    [voicesPlayed]
+  );
+
+  const resetVoices = useCallback(() => {
+    setVoicesPlayed(new Set());
+  }, []);
+
+  const playEndMusic = useCallback(
+    (outcome: 'win' | 'lose' | 'failed') => {
+      clearCountdown();
+      stopCurrentTrack();
+      modeRef.current = 'silent';
+
+      activeVoicesRef.current.forEach((voice) => {
+        voice.pause();
+        voice.currentTime = 0;
+      });
+      activeVoicesRef.current = [];
+      setActiveVoice(null);
+
+      const map = {
+        win: trackUrl('auction-win.mp3'),
+        lose: trackUrl('auction-lost.mp3'),
+        failed: trackUrl('auction-failed.mp3'),
+      };
+
+      const audio = new Audio(map[outcome]);
+      audio.volume = musicVolumeRef.current;
+      audio.play().catch((err) => console.error('End music failed:', err));
+    },
+    [stopCurrentTrack]
+  );
+
+  const setMasterMusicVolume = useCallback((value: number) => {
+    const clamped = Math.max(0, Math.min(1, value));
+    setMusicVolume(clamped);
+    musicVolumeRef.current = clamped;
+    trackRefs.current.forEach((audio) => {
+      audio.volume = clamped * 0.7;
+    });
+  }, []);
+
+  const setMasterVoiceVolume = useCallback((value: number) => {
+    const clamped = Math.max(0, Math.min(1, value));
+    setVoiceVolume(clamped);
+    voiceVolumeRef.current = clamped;
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearCountdown();
+      stopCurrentTrack();
+      activeVoicesRef.current.forEach((voice) => {
+        voice.pause();
+        voice.currentTime = 0;
+      });
+      activeVoicesRef.current = [];
+    },
+    [stopCurrentTrack]
+  );
+
   return {
-    startMusic,
-    stopMusic,
-    playAmbient,
-    stopAmbient,
+    setAudioMode,
+    preloadAllTracks,
     playVoice,
     resetVoices,
     playEndMusic,
     setMasterMusicVolume,
     setMasterVoiceVolume,
-    isPlaying,
-    voicesPlayed,
     musicVolume,
     voiceVolume,
-    activeVoice, // Currently playing voice for portrait display
-    nowPlaying, // Current track info for display
+    activeVoice,
+    voicesPlayed,
+    nowPlaying,
   };
 }

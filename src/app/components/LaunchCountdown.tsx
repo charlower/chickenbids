@@ -123,9 +123,7 @@ export default function LaunchCountdown({
           </div>
           <div className={styles.message}>
             {countdown > 30 && '>> INITIALIZING AUCTION PROTOCOL <<'}
-            {countdown <= 30 &&
-              countdown > 20 &&
-              '>> SECURING PLAYER CONNECTION <<'}
+            {countdown <= 30 && countdown > 20 && '>> SECURING CONNECTION <<'}
             {countdown <= 20 && countdown > 10 && '>> LOADING TARGET DATA <<'}
             {countdown <= 10 && countdown > 5 && '>> STANDBY FOR LIVE FEED <<'}
             {countdown <= 5 && '>> AUCTION GOING LIVE <<'}

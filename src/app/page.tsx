@@ -56,6 +56,10 @@ const formatDropTime = (timestamp?: number) => {
 
 const LOCKDOWN_STANDBY_MS = 20 * 60 * 1000;
 
+const AUDIO_BASE_URL =
+  'https://idzzbnumpmqozrfnokbv.supabase.co/storage/v1/object/public/audio/';
+const audioUrl = (file: string) => `${AUDIO_BASE_URL}${file}`;
+
 const MOCK_COUNTDOWN: Record<TimeWindow, number | null> = {
   standby: 2 * ONE_HOUR_MS,
   live: 0,
@@ -69,9 +73,8 @@ export default function Home() {
 
   // Audio hook
   const {
-    startMusic,
-    playAmbient,
-    stopAmbient,
+    setAudioMode,
+    preloadAllTracks,
     playVoice,
     resetVoices,
     playEndMusic,
@@ -105,16 +108,15 @@ export default function Home() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [bidLockModalOpen, setBidLockModalOpen] = useState(false);
   const [launchCountdownOpen, setLaunchCountdownOpen] = useState(false);
+  const [countdownAudioActive, setCountdownAudioActive] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [lockExpiresAt, setLockExpiresAt] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
-  const [auctionMusicStarted, setAuctionMusicStarted] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
-  const [shouldStartAmbient, setShouldStartAmbient] = useState(false);
   const [audioPermissionModalOpen, setAudioPermissionModalOpen] =
-    useState(false);
+    useState(true);
   const [recentActivity, setRecentActivity] = useState<
     Array<{
       type: 'win' | 'bid';
@@ -162,9 +164,6 @@ export default function Home() {
 
   useEffect(() => {
     setTimeout(() => setIsMounted(true), 0);
-
-    // Always show audio permission modal on launch
-    setAudioPermissionModalOpen(true);
   }, []);
 
   // Block scroll when any modal or sidebar is open
@@ -650,119 +649,73 @@ export default function Home() {
     currentAuction?.floor_price,
   ]);
 
-  // Trigger ambient music when audio is first enabled
-  useEffect(() => {
-    if (audioEnabled && shouldStartAmbient) {
-      setShouldStartAmbient(false);
-      // Immediately start appropriate ambient music based on current state
-      if (timeWindow === 'no-auction' && !auctionEndModalOpen) {
-        playAmbient('no-auction');
-      } else if (timeWindow === 'standby') {
-        const startTime = currentAuction
-          ? new Date(currentAuction.start_at).getTime()
-          : null;
-        const msUntilStart = startTime ? startTime - now : null;
-        if (msUntilStart !== null && msUntilStart < ONE_HOUR_MS) {
-          playAmbient('lobby-open');
-        } else {
-          playAmbient('lobby-closed');
-        }
-      }
-    }
-  }, [
-    audioEnabled,
-    shouldStartAmbient,
-    timeWindow,
-    auctionEndModalOpen,
-    playAmbient,
-    currentAuction,
-    now,
-  ]);
+  const countdownTriggeredRef = useRef<string>(''); // Track which auction had countdown
 
-  // Play ambient music based on timeWindow
-  useEffect(() => {
-    // Don't play music until audio is enabled
-    if (!audioEnabled) return;
-
-    if (timeWindow === 'no-auction') {
-      // Don't start ambient music if auction end modal is open
-      if (!auctionEndModalOpen) {
-        playAmbient('no-auction'); // antarctique-ambience
-      }
-      setAuctionMusicStarted(false); // Reset for next auction
-    } else if (timeWindow === 'standby') {
-      // Don't change music if countdown is about to start or is open
-      if (launchCountdownOpen) {
-        return;
-      }
-
-      // Check time until auction
+  const desiredAudioMode = useMemo(() => {
+    if (!audioEnabled || auctionEndModalOpen) return 'silent';
+    if (countdownAudioActive) return 'countdown';
+    if (timeWindow === 'live') return 'auction';
+    if (timeWindow === 'no-auction') return 'ambient-no-auction';
+    if (timeWindow === 'standby') {
       const startTime = currentAuction
         ? new Date(currentAuction.start_at).getTime()
         : null;
       const msUntilStart = startTime ? startTime - now : null;
-
-      // < 60 mins: sultry-poultry, >= 60 mins: incubation-station
-      if (msUntilStart !== null && msUntilStart < ONE_HOUR_MS) {
-        playAmbient('lobby-open'); // sultry-poultry (< 60 mins)
-      } else {
-        playAmbient('lobby-closed'); // incubation-station (> 60 mins)
-      }
-
-      // Only reset if we're not in countdown (countdown sets this to true)
-      if (!launchCountdownOpen) {
-        setAuctionMusicStarted(false);
-      }
-    } else if (timeWindow === 'live' && !auctionMusicStarted) {
-      // Auction is live but music hasn't started yet
-      // This handles the case where user joins mid-auction or refreshes during live auction
-      stopAmbient();
-      startMusic();
-      setAuctionMusicStarted(true);
+      return msUntilStart !== null && msUntilStart < ONE_HOUR_MS
+        ? 'ambient-lobby-late'
+        : 'ambient-lobby-early';
     }
-    // Note: When timeWindow is 'live' and auctionMusicStarted is true, do nothing (music continues)
+    return 'silent';
   }, [
-    timeWindow,
-    now,
-    currentAuction,
-    playAmbient,
-    stopAmbient,
-    startMusic,
-    launchCountdownOpen,
-    auctionMusicStarted,
-    auctionEndModalOpen,
     audioEnabled,
+    auctionEndModalOpen,
+    countdownAudioActive,
+    timeWindow,
+    currentAuction,
+    now,
   ]);
 
-  // Detect when auction is about to go live (within 35.14 seconds)
+  useEffect(() => {
+    setAudioMode(desiredAudioMode);
+  }, [desiredAudioMode, setAudioMode]);
+
+  // Start countdown (ONE TIME PER AUCTION)
   useEffect(() => {
     if (!currentAuction || currentAuction.status !== 'scheduled') return;
+
+    // Prevent triggering countdown more than once for the same auction
+    if (countdownTriggeredRef.current === currentAuction.id) {
+      return;
+    }
 
     const startTime = new Date(currentAuction.start_at).getTime();
     const timeUntilStart = startTime - now;
 
-    // If auction starts within 35.14 seconds, show countdown
-    if (timeUntilStart > 0 && timeUntilStart <= 35140 && !launchCountdownOpen) {
+    if (timeUntilStart > 0 && timeUntilStart <= 35140) {
+      console.log('🚀 Starting countdown for auction', currentAuction.id);
+      countdownTriggeredRef.current = currentAuction.id; // Mark as triggered
       setLaunchCountdownOpen(true);
-      if (audioEnabled) {
-        stopAmbient(); // Stop ambient music before starting auction music
-        startMusic(); // Start intro music
-        setAuctionMusicStarted(true); // Mark that auction music has started
-      }
+      setCountdownAudioActive(true);
     }
-  }, [
-    currentAuction,
-    now,
-    startMusic,
-    stopAmbient,
-    launchCountdownOpen,
-    audioEnabled,
-  ]);
+  }, [currentAuction, now]);
+
+  // Once auction is live, allow countdown audio to hand off to auction music
+  useEffect(() => {
+    if (timeWindow === 'live' && countdownAudioActive) {
+      setCountdownAudioActive(false);
+    }
+  }, [timeWindow, countdownAudioActive]);
+
+  // Reset when auction fully ends
+  useEffect(() => {
+    if (timeWindow !== 'live') {
+      countdownTriggeredRef.current = '';
+    }
+  }, [timeWindow]);
 
   // When countdown completes, hide it
   const handleLaunchComplete = () => {
     setLaunchCountdownOpen(false);
-    // Don't reset auctionMusicStarted - music should continue playing
   };
 
   // Trigger voice clips based on price remaining
@@ -777,24 +730,24 @@ export default function Home() {
     if (percentRemaining > 98) {
       return;
     } else if (percentRemaining > 90) {
-      playVoice('player-down', '/assets/audio/player-down.mp3');
+      playVoice('player-down', audioUrl('player-down.mp3'));
     } else if (percentRemaining > 80) {
-      playVoice('my-loot', '/assets/audio/my-loot.mp3');
+      playVoice('my-loot', audioUrl('my-loot.mp3'));
     } else if (percentRemaining > 70) {
-      playVoice('backup', '/assets/audio/backup.mp3');
+      playVoice('backup', audioUrl('backup.mp3'));
     } else if (percentRemaining > 60) {
-      playVoice('why-bother', '/assets/audio/why-bother.mp3');
+      playVoice('why-bother', audioUrl('why-bother.mp3'));
     } else if (percentRemaining > 50) {
-      playVoice('cant-hold-them', '/assets/audio/cant-hold-them.mp3');
+      playVoice('cant-hold-them', audioUrl('cant-hold-them.mp3'));
     } else if (percentRemaining > 40) {
-      playVoice('hands-off', '/assets/audio/hands-off.mp3');
+      playVoice('hands-off', audioUrl('hands-off.mp3'));
     } else if (percentRemaining > 25) {
-      playVoice('cant-do-this', '/assets/audio/cant-do-this.mp3');
+      playVoice('cant-do-this', audioUrl('cant-do-this.mp3'));
     } else if (percentRemaining > 10) {
-      playVoice('pathetic', '/assets/audio/pathetic.mp3');
+      playVoice('pathetic', audioUrl('pathetic.mp3'));
     } else {
       // Triggers when percentage is 10% or lower
-      playVoice('one-last-try', '/assets/audio/one-last-try.mp3');
+      playVoice('one-last-try', audioUrl('one-last-try.mp3'));
     }
   }, [price, currentAuction, isAuctionLive, playVoice, audioEnabled]);
 
@@ -2192,11 +2145,9 @@ export default function Home() {
       <AudioPermissionModal
         isOpen={audioPermissionModalOpen}
         onClose={() => setAudioPermissionModalOpen(false)}
-        onAllow={() => {
-          setAudioEnabled(true);
-          setShouldStartAmbient(true);
-        }}
+        onAllow={() => setAudioEnabled(true)}
         onDeny={() => setAudioEnabled(false)}
+        preloadAudioTracks={preloadAllTracks}
       />
     </div>
   );
