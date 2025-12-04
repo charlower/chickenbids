@@ -163,13 +163,8 @@ export default function Home() {
   useEffect(() => {
     setTimeout(() => setIsMounted(true), 0);
 
-    // Check if user has already made audio choice
-    const hasChosenAudio = localStorage.getItem('cb_audio_permission');
-    if (!hasChosenAudio) {
-      setAudioPermissionModalOpen(true);
-    } else if (hasChosenAudio === 'allowed') {
-      setAudioEnabled(true);
-    }
+    // Always show audio permission modal on launch
+    setAudioPermissionModalOpen(true);
   }, []);
 
   // Block scroll when any modal or sidebar is open

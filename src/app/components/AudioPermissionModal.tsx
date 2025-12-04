@@ -17,31 +17,54 @@ export default function AudioPermissionModal({
   onClose,
 }: AudioPermissionModalProps) {
   const handleAllow = () => {
-    localStorage.setItem('cb_audio_permission', 'allowed');
+    console.log('🎯 Enable Comms clicked');
 
-    // Play a silent audio to unlock the audio context
+    // Create and play silent audio SYNCHRONOUSLY (critical for Safari)
     const silentAudio = new Audio();
+    silentAudio.volume = 0.01;
     silentAudio.src =
       'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAADhAC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAA4SgjLCVAAAAAAAAAAAAAAAAAAAAAP/7kGQAD/AAAGkAAAAIAAANgAAAAQAAAaQAAAAgAAA0gAAABExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//uQZAoP8AAAaQAAAAgAAA0gAAABAAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=';
-    silentAudio.volume = 0.01;
 
-    silentAudio
-      .play()
-      .then(() => {
-        console.log('🔊 Audio unlocked - COMMS ONLINE');
+    let didComplete = false;
+
+    const completeAction = () => {
+      if (!didComplete) {
+        didComplete = true;
+        console.log('✅ Completing audio permission action');
         onClose();
         onAllow();
-      })
-      .catch((err) => {
-        console.error('Failed to unlock audio:', err);
-        // Still proceed even if unlock fails
-        onClose();
-        onAllow();
-      });
+      }
+    };
+
+    // Timeout fallback in case Safari hangs the promise
+    const timeoutId = setTimeout(() => {
+      console.log('⏱️ Audio unlock timeout - proceeding anyway');
+      completeAction();
+    }, 500);
+
+    // Must call play() synchronously in Safari
+    const playPromise = silentAudio.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log('🔊 Audio unlocked - COMMS ONLINE');
+          clearTimeout(timeoutId);
+          completeAction();
+        })
+        .catch((err) => {
+          console.error('⚠️ Audio unlock failed (but proceeding anyway):', err);
+          clearTimeout(timeoutId);
+          completeAction();
+        });
+    } else {
+      // Fallback for older browsers
+      clearTimeout(timeoutId);
+      completeAction();
+    }
   };
 
   const handleDeny = () => {
-    localStorage.setItem('cb_audio_permission', 'denied');
     onClose();
     onDeny();
   };
