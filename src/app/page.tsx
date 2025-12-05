@@ -140,6 +140,7 @@ export default function Home() {
     lock_expires_at?: string | null;
     created_at: string;
     ended_at?: string | null;
+    livestream_url?: string | null;
     products?: {
       name: string;
       variant: string | null;
@@ -1136,6 +1137,9 @@ export default function Home() {
   const interstitialNeedsAttention = requiresCredit && isLoggedIn && !hasCredit;
   const interstitialDisabled = !isLoggedIn || timeWindow === 'no-auction';
 
+  // Get YouTube video ID directly from auction
+  const youtubeVideoId = currentAuction?.livestream_url || null;
+
   // Calculate actual remaining time based on server's current price and drop rate
   const remainingMs = useMemo(() => {
     if (
@@ -1616,24 +1620,48 @@ export default function Home() {
                   styles[`stage-${timeWindow}`]
                 } ${isWithinHour ? styles.stageLockdown : ''}`}
               >
-                <div className={styles.stageOverlay} />
-                <div className={styles.stageScanlines} />
-                <div className={styles.stageContent}>
-                  <span className={styles.stageBadge}>{stageCopy.badge}</span>
-                  <h2>{stageCopy.headline}</h2>
-                  <p>{stageCopy.subline}</p>
-                </div>
-                <div className={styles.stageLogo}>
-                  <Image
-                    src='/assets/img/chickenbids-logo.png'
-                    alt='CHICKENBIDS'
-                    width={150}
-                    height={150}
-                    draggable={false}
+                {youtubeVideoId && (isWithinHour || timeWindow === 'live') ? (
+                  /* YouTube Livestream - shows when lobby opens (<60 mins) or auction is live */
+                  <iframe
+                    src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&showinfo=0`}
+                    title='ChickenBids Live'
+                    frameBorder='0'
+                    allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+                    allowFullScreen
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                    }}
                   />
-                </div>
+                ) : (
+                  /* Default static content */
+                  <>
+                    <div className={styles.stageOverlay} />
+                    <div className={styles.stageScanlines} />
+                    <div className={styles.stageContent}>
+                      <span className={styles.stageBadge}>
+                        {stageCopy.badge}
+                      </span>
+                      <h2>{stageCopy.headline}</h2>
+                      <p>{stageCopy.subline}</p>
+                    </div>
+                    <div className={styles.stageLogo}>
+                      <Image
+                        src='/assets/img/chickenbids-logo.png'
+                        alt='CHICKENBIDS'
+                        width={150}
+                        height={150}
+                        draggable={false}
+                      />
+                    </div>
+                  </>
+                )}
 
-                {/* Comms Portrait Overlay */}
+                {/* Comms Portrait Overlay - shows over both video and static content */}
                 <CommsPortrait
                   isVisible={!!activeVoice}
                   operatorName={

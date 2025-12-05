@@ -25,6 +25,7 @@ export function CreateAuction() {
   const [floorPrice, setFloorPrice] = useState('');
   const [dropRate, setDropRate] = useState('1.00');
   const [startAt, setStartAt] = useState('');
+  const [livestreamUrl, setLivestreamUrl] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -140,6 +141,7 @@ export function CreateAuction() {
           current_price: startPriceNum,
           drop_rate: dropRateNum,
           start_at: new Date(startAt).toISOString(),
+          livestream_url: livestreamUrl || null,
           status: 'scheduled',
         })
         .select()
@@ -163,6 +165,7 @@ export function CreateAuction() {
       setFloorPrice('');
       setDropRate('1.00');
       setStartAt('');
+      setLivestreamUrl('');
       setImages([]);
     } catch (error) {
       console.error('Create auction error:', error);
@@ -408,6 +411,23 @@ export function CreateAuction() {
                 onChange={(e) => setStartAt(e.target.value)}
                 required
               />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>
+                YOUTUBE VIDEO ID (Optional)
+              </label>
+              <input
+                type='text'
+                className={styles.input}
+                value={livestreamUrl}
+                onChange={(e) => setLivestreamUrl(e.target.value)}
+                placeholder='TlUZ2llE02k'
+              />
+              <div className={styles.hint}>
+                Paste only the YouTube video ID (e.g., TlUZ2llE02k from
+                youtube.com/watch?v=TlUZ2llE02k)
+              </div>
             </div>
           </div>
         </div>

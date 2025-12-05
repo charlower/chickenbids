@@ -16,75 +16,56 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'controls' | 'create'>('controls');
 
   useEffect(() => {
-    let mounted = true;
-    let timeoutId: NodeJS.Timeout;
+    // Still loading auth state
+    if (appLoading) {
+      return;
+    }
 
-    const checkAdmin = async () => {
-      // Set a timeout to force redirect after 3 seconds if still loading
-      timeoutId = setTimeout(() => {
-        if (appLoading && mounted) {
-          setChecking(false);
-          router.replace('/');
-        }
-      }, 3000);
+    // Not logged in
+    if (!user) {
+      router.replace('/');
+      return;
+    }
 
-      // Wait for app context to load (but not forever)
-      if (appLoading) {
-        return;
+    // Check player's is_admin flag from context
+    if (player) {
+      if (player.is_admin === true) {
+        setIsAdmin(true);
+        setChecking(false);
+      } else {
+        router.replace('/');
       }
+      return;
+    }
 
-      // Clear timeout since we're no longer loading
-      clearTimeout(timeoutId);
-
-      // No user - redirect immediately
-      if (!user) {
-        if (mounted) {
-          setChecking(false);
-          router.replace('/');
-        }
-        return;
-      }
-
-      // Check if player has is_admin flag
-      if (player?.is_admin === true) {
-        if (mounted) {
-          setIsAdmin(true);
-          setChecking(false);
-        }
-        return;
-      }
-
-      // Fallback: Query database directly
+    // Player not loaded yet but user exists - query DB directly
+    const checkAdminFromDB = async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', user.id)
         .single();
 
-      if (!mounted) return;
-
-      if (error) {
-        setChecking(false);
+      if (error || !data?.is_admin) {
         router.replace('/');
         return;
       }
 
-      if (data?.is_admin === true) {
-        setIsAdmin(true);
-        setChecking(false);
-      } else {
-        setChecking(false);
-        router.replace('/');
-      }
+      setIsAdmin(true);
+      setChecking(false);
     };
 
-    checkAdmin();
-
-    return () => {
-      mounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
+    checkAdminFromDB();
   }, [user, appLoading, player, router]);
+
+  // Show loading while checking authorization
+  if (checking || !isAdmin) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.loading}>VERIFYING CLEARANCE...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>

@@ -102,6 +102,7 @@ CREATE TABLE auctions (
   duration_seconds integer,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  livestream_url text,
   
   CONSTRAINT price_check CHECK (start_price > floor_price)
 );
