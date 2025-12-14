@@ -1332,6 +1332,7 @@ export default function Home() {
           name: currentProduct.name,
           variant: currentProduct.variant || '',
           condition: currentProduct.condition,
+          description: currentProduct.description || '',
           images:
             productImages.length > 0
               ? productImages
@@ -1566,7 +1567,7 @@ export default function Home() {
                 <span>{stageCopy.badge}</span>
               </div>
               <div className={styles.infoRow}>
-                <span>UPCOMING AUCTION</span>
+                <span>AUCTION TIME | 🇦🇺AEST</span>
                 <span>
                   {timeWindow === 'no-auction' ? 'CLASSIFIED' : dropTimeLabel}
                 </span>

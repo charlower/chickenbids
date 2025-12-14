@@ -12,6 +12,7 @@ type LootIntelModalProps = {
     name: string;
     variant: string;
     condition: string;
+    description: string;
     images: string[];
     contents: string[];
     dropTime: string;
@@ -106,6 +107,14 @@ export default function LootIntelModal({
             </div>
           </div>
         </div>
+
+        {/* Description */}
+        {lootData.description && (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>DESCRIPTION</div>
+            <p className={styles.description}>{lootData.description}</p>
+          </div>
+        )}
 
         {/* What's Included */}
         <div className={styles.section}>

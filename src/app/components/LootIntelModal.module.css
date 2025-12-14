@@ -162,6 +162,14 @@
   font-weight: 700;
 }
 
+.description {
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
 .closeButton {
   width: 100%;
   padding: 14px 0;
