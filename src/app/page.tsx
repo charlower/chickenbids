@@ -156,6 +156,7 @@ export default function Home() {
     name: string;
     variant: string | null;
     condition: string;
+    description: string | null;
     contents: string[];
     shipping_time: string;
     shipping_method: string;
