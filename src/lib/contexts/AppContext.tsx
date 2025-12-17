@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
   ReactNode,
 } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -69,137 +70,188 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch player profile
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+  const fetchProfile = useCallback(async (userId: string) => {
+    console.log('[AppContext] Fetching profile for:', userId);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (data && !error) {
-      setPlayer({
-        id: data.id,
-        callsign: data.username,
-        email: data.email,
-        phone: data.phone,
-        level: data.level,
-        xp: data.xp,
-        total_spent: data.total_spent,
-        auctions_won: data.auctions_won,
-        total_bids: data.total_bids,
-        marketing_opt_in: data.marketing_opt_in,
-        created_at: data.created_at,
-        is_admin: data.is_admin || false,
-      });
+      if (error) {
+        console.error('[AppContext] Profile fetch error:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('[AppContext] Profile loaded:', data.username);
+        setPlayer({
+          id: data.id,
+          callsign: data.username,
+          email: data.email,
+          phone: data.phone,
+          level: data.level,
+          xp: data.xp,
+          total_spent: data.total_spent,
+          auctions_won: data.auctions_won,
+          total_bids: data.total_bids,
+          marketing_opt_in: data.marketing_opt_in,
+          created_at: data.created_at,
+          is_admin: data.is_admin || false,
+        });
+      }
+    } catch (err) {
+      console.error('[AppContext] Profile fetch exception:', err);
     }
-  };
+  }, []);
 
   // Fetch credits
-  const fetchCredits = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('credits')
-      .select('balance')
-      .eq('user_id', userId)
-      .single();
+  const fetchCredits = useCallback(async (userId: string) => {
+    console.log('[AppContext] Fetching credits for:', userId);
+    try {
+      const { data, error } = await supabase
+        .from('credits')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
 
-    if (data && !error) {
-      setCredits(data.balance);
+      if (error) {
+        // No credits row yet is OK - might be a new user
+        if (error.code !== 'PGRST116') {
+          console.error('[AppContext] Credits fetch error:', error);
+        }
+        setCredits(0);
+        return;
+      }
+
+      if (data) {
+        console.log('[AppContext] Credits loaded:', data.balance);
+        setCredits(data.balance);
+      }
+    } catch (err) {
+      console.error('[AppContext] Credits fetch exception:', err);
+      setCredits(0);
     }
-  };
+  }, []);
 
-  // Fetch products (runs once)
-  const fetchProducts = async () => {
-    const { data: productsData, error: productsError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('active', true);
+  // Load user data (profile + credits)
+  const loadUserData = useCallback(
+    async (user: User) => {
+      console.log('[AppContext] Loading user data for:', user.id);
+      await Promise.all([fetchProfile(user.id), fetchCredits(user.id)]);
+    },
+    [fetchProfile, fetchCredits]
+  );
 
-    if (productsData && !productsError) {
-      // Fetch images for each product
-      const productsWithImages = await Promise.all(
-        productsData.map(async (product) => {
-          const { data: imagesData } = await supabase
-            .from('product_images')
-            .select('url')
-            .eq('product_id', product.id)
-            .order('position');
-
-          return {
-            id: product.id,
-            name: product.name,
-            variant: product.variant,
-            description: product.description,
-            condition: product.condition,
-            contents: product.contents || [],
-            retail_price: product.retail_price,
-            shipping_time: product.shipping_time,
-            shipping_method: product.shipping_method,
-            returns_policy: product.returns_policy,
-            images: imagesData?.map((img) => img.url) || [],
-          };
-        })
-      );
-
-      setProducts(productsWithImages);
-    }
-  };
+  // Clear user data on logout
+  const clearUserData = useCallback(() => {
+    console.log('[AppContext] Clearing user data');
+    setPlayer(null);
+    setCredits(0);
+  }, []);
 
   // Refresh functions (can be called manually)
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
-  };
+  }, [user, fetchProfile]);
 
-  const refreshCredits = async () => {
+  const refreshCredits = useCallback(async () => {
     if (user) await fetchCredits(user.id);
-  };
+  }, [user, fetchCredits]);
 
-  // Auth state listener
+  // Auth state listener - SINGLE SOURCE OF TRUTH
   useEffect(() => {
-    let mounted = true;
+    console.log('[AppContext] Setting up auth listener');
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchCredits(session.user.id);
-      }
-      setIsLoading(false);
-    });
-
-    // Listen for auth changes
+    // onAuthStateChange is the ONLY source of truth
+    // It fires immediately with INITIAL_SESSION event
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
+      console.log(
+        '[AppContext] Auth event:',
+        event,
+        'User:',
+        session?.user?.id
+      );
 
-      if (event === 'SIGNED_IN' && session?.user) {
-        await fetchProfile(session.user.id);
-        await fetchCredits(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
-        setPlayer(null);
-        setCredits(0);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        // User is logged in - load their data
+        await loadUserData(currentUser);
+      } else {
+        // User is logged out - clear data
+        clearUserData();
       }
 
+      // Only set loading false after we've processed the auth state
       setIsLoading(false);
     });
 
     return () => {
-      mounted = false;
+      console.log('[AppContext] Cleaning up auth listener');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserData, clearUserData]);
 
   // Fetch products once on mount
   useEffect(() => {
     let mounted = true;
 
-    const loadProducts = async () => {
-      if (mounted) await fetchProducts();
+    const fetchProducts = async () => {
+      console.log('[AppContext] Fetching products');
+      try {
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('active', true);
+
+        if (productsError) {
+          console.error('[AppContext] Products fetch error:', productsError);
+          return;
+        }
+
+        if (productsData && mounted) {
+          // Fetch images for each product
+          const productsWithImages = await Promise.all(
+            productsData.map(async (product) => {
+              const { data: imagesData } = await supabase
+                .from('product_images')
+                .select('url')
+                .eq('product_id', product.id)
+                .order('position');
+
+              return {
+                id: product.id,
+                name: product.name,
+                variant: product.variant,
+                description: product.description,
+                condition: product.condition,
+                contents: product.contents || [],
+                retail_price: product.retail_price,
+                shipping_time: product.shipping_time,
+                shipping_method: product.shipping_method,
+                returns_policy: product.returns_policy,
+                images: imagesData?.map((img) => img.url) || [],
+              };
+            })
+          );
+
+          setProducts(productsWithImages);
+          console.log(
+            '[AppContext] Products loaded:',
+            productsWithImages.length
+          );
+        }
+      } catch (err) {
+        console.error('[AppContext] Products fetch exception:', err);
+      }
     };
 
-    loadProducts();
+    fetchProducts();
 
     return () => {
       mounted = false;

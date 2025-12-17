@@ -71,6 +71,12 @@ export default function Home() {
   const { user, player, credits, refreshCredits, refreshProfile } = useApp();
   // products and authLoading available when needed
 
+  // Keep a ref to current user ID for use in callbacks (avoids stale closures)
+  const userIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+  }, [user?.id]);
+
   // Audio hook
   const {
     setAudioMode,
@@ -398,19 +404,17 @@ export default function Home() {
             if (updatedAuction.status === 'completed') {
               setAuctionEndModalOpen(true);
 
-              // Get current user ID from Supabase session (more reliable than context in callbacks)
-              supabase.auth.getSession().then(({ data: { session } }) => {
-                const currentUserId = session?.user?.id;
+              // Use ref for current user ID (always up to date in callbacks)
+              const currentUserId = userIdRef.current;
 
-                // Play appropriate end music
-                if (!updatedAuction.winner_id) {
-                  playEndMusic('failed'); // No winner
-                } else if (updatedAuction.winner_id === currentUserId) {
-                  playEndMusic('win'); // You won!
-                } else {
-                  playEndMusic('lose'); // Someone else won
-                }
-              });
+              // Play appropriate end music
+              if (!updatedAuction.winner_id) {
+                playEndMusic('failed'); // No winner
+              } else if (updatedAuction.winner_id === currentUserId) {
+                playEndMusic('win'); // You won!
+              } else {
+                playEndMusic('lose'); // Someone else won
+              }
 
               // Close bid lock modal if open
               setBidLockModalOpen(false);
@@ -428,23 +432,21 @@ export default function Home() {
 
             if (updatedAuction.locked_by && updatedAuction.lock_expires_at) {
               // Check if it's locked by someone else
-              supabase.auth.getSession().then(({ data: { session } }) => {
-                const currentUserId = session?.user?.id;
-                console.log('Lock comparison:', {
-                  locked_by: updatedAuction.locked_by,
-                  currentUserId,
-                  isOtherPlayer: updatedAuction.locked_by !== currentUserId,
-                });
-
-                if (updatedAuction.locked_by !== currentUserId) {
-                  // Another player locked it - show spectator modal
-                  console.log('Showing spectator modal');
-                  setSpectatorLock({
-                    price: updatedAuction.current_price as number,
-                    expiresAt: updatedAuction.lock_expires_at as string,
-                  });
-                }
+              const currentUserId = userIdRef.current;
+              console.log('Lock comparison:', {
+                locked_by: updatedAuction.locked_by,
+                currentUserId,
+                isOtherPlayer: updatedAuction.locked_by !== currentUserId,
               });
+
+              if (updatedAuction.locked_by !== currentUserId) {
+                // Another player locked it - show spectator modal
+                console.log('Showing spectator modal');
+                setSpectatorLock({
+                  price: updatedAuction.current_price as number,
+                  expiresAt: updatedAuction.lock_expires_at as string,
+                });
+              }
             } else if (!updatedAuction.locked_by) {
               // Lock released - close spectator modal
               console.log('Closing spectator modal - lock released');
