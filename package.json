@@ -12,6 +12,7 @@
     "@react-email/components": "^1.0.1",
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.5.3",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.84.0",
     "framer-motion": "^12.23.24",
     "next": "^16.0.7",

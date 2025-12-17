@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -9,9 +10,23 @@ export async function GET(request: NextRequest) {
   console.log('Confirmation request:', { token_hash: !!token_hash, type });
 
   if (token_hash && type) {
-    const supabase = createClient(
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
     );
 
     const { data, error } = await supabase.auth.verifyOtp({
@@ -52,7 +67,7 @@ export async function GET(request: NextRequest) {
         console.log('Profile created successfully');
       }
 
-      // Redirect to home with success - let client handle login
+      // Redirect to home with success - session cookies are now set!
       return NextResponse.redirect(
         new URL('/?confirmed=true', requestUrl.origin)
       );
