@@ -420,7 +420,7 @@ export default function Home() {
             }
 
             // Handle auction locks
-            console.log('Lock update check:', {
+            console.log('Lock update check - ', {
               locked_by: updatedAuction.locked_by,
               lock_expires_at: updatedAuction.lock_expires_at,
               current_price: updatedAuction.current_price,
