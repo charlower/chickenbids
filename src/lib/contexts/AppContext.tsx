@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -69,9 +70,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Track if we've initialized to avoid double-init from Strict Mode
+  const initRef = useRef(false);
+  const mountedRef = useRef(true);
+
   // Fetch player profile
   const fetchProfile = useCallback(async (userId: string) => {
-    console.log('[AppContext] Fetching profile for:', userId);
+    console.log('[Auth] Fetching profile for:', userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -80,12 +85,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (error) {
-        console.error('[AppContext] Profile fetch error:', error);
+        console.error('[Auth] Profile fetch error:', error);
         return;
       }
 
-      if (data) {
-        console.log('[AppContext] Profile loaded:', data.username);
+      if (data && mountedRef.current) {
+        console.log('[Auth] ✓ Profile loaded:', data.username);
         setPlayer({
           id: data.id,
           callsign: data.username,
@@ -102,13 +107,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (err) {
-      console.error('[AppContext] Profile fetch exception:', err);
+      console.error('[Auth] Profile fetch exception:', err);
     }
   }, []);
 
   // Fetch credits
   const fetchCredits = useCallback(async (userId: string) => {
-    console.log('[AppContext] Fetching credits for:', userId);
+    console.log('[Auth] Fetching credits for:', userId);
     try {
       const { data, error } = await supabase
         .from('credits')
@@ -117,28 +122,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (error) {
-        // No credits row yet is OK - might be a new user
         if (error.code !== 'PGRST116') {
-          console.error('[AppContext] Credits fetch error:', error);
+          console.error('[Auth] Credits fetch error:', error);
         }
-        setCredits(0);
+        if (mountedRef.current) setCredits(0);
         return;
       }
 
-      if (data) {
-        console.log('[AppContext] Credits loaded:', data.balance);
+      if (data && mountedRef.current) {
+        console.log('[Auth] ✓ Credits loaded:', data.balance);
         setCredits(data.balance);
       }
     } catch (err) {
-      console.error('[AppContext] Credits fetch exception:', err);
-      setCredits(0);
+      console.error('[Auth] Credits fetch exception:', err);
+      if (mountedRef.current) setCredits(0);
     }
   }, []);
 
   // Load user data (profile + credits)
   const loadUserData = useCallback(
     async (user: User) => {
-      console.log('[AppContext] Loading user data for:', user.id);
+      console.log('[Auth] Loading user data for:', user.id);
       await Promise.all([fetchProfile(user.id), fetchCredits(user.id)]);
     },
     [fetchProfile, fetchCredits]
@@ -146,7 +150,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Clear user data on logout
   const clearUserData = useCallback(() => {
-    console.log('[AppContext] Clearing user data');
+    console.log('[Auth] Clearing user data');
     setPlayer(null);
     setCredits(0);
   }, []);
@@ -160,49 +164,153 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (user) await fetchCredits(user.id);
   }, [user, fetchCredits]);
 
-  // Auth state listener - SINGLE SOURCE OF TRUTH
+  // Get user with retry
+  const getUserWithRetry = useCallback(
+    async (retries = 3): Promise<User | null> => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          console.log(`[Auth] getUser attempt ${i + 1}/${retries}`);
+          const {
+            data: { user },
+            error,
+          } = await supabase.auth.getUser();
+
+          if (error) {
+            console.log(
+              `[Auth] getUser error (attempt ${i + 1}):`,
+              error.message
+            );
+            // If auth session missing, that's a valid "no user" response
+            if (error.message.includes('Auth session missing')) {
+              return null;
+            }
+            // For other errors, retry
+            if (i < retries - 1) {
+              await new Promise((r) => setTimeout(r, 100 * (i + 1)));
+              continue;
+            }
+          }
+
+          return user;
+        } catch (err) {
+          console.error(`[Auth] getUser exception (attempt ${i + 1}):`, err);
+          if (i < retries - 1) {
+            await new Promise((r) => setTimeout(r, 100 * (i + 1)));
+          }
+        }
+      }
+      return null;
+    },
+    []
+  );
+
+  // MAIN AUTH INITIALIZATION
   useEffect(() => {
-    console.log('[AppContext] Setting up auth listener');
+    // Prevent double initialization in Strict Mode
+    if (initRef.current) {
+      console.log('[Auth] Already initialized, skipping');
+      return;
+    }
+    initRef.current = true;
+    mountedRef.current = true;
 
-    // onAuthStateChange is the ONLY source of truth
-    // It fires immediately with INITIAL_SESSION event
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(
-        '[AppContext] Auth event:',
-        event,
-        'User:',
-        session?.user?.id
-      );
+    console.log('[Auth] ========== INITIALIZING ==========');
+    console.log(
+      '[Auth] Document cookies exist:',
+      typeof document !== 'undefined' && document.cookie.length > 0
+    );
 
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
+    let authStateSubscription: { unsubscribe: () => void } | null = null;
 
-      if (currentUser) {
-        // User is logged in - load their data
-        await loadUserData(currentUser);
+    const initialize = async () => {
+      // Small delay to ensure cookies are available after page load
+      await new Promise((r) => setTimeout(r, 50));
+
+      if (!mountedRef.current) return;
+
+      // 1. Try to get user with retries
+      const user = await getUserWithRetry(3);
+
+      if (!mountedRef.current) return;
+
+      if (user) {
+        console.log('[Auth] ✓ User found:', user.id);
+        setUser(user);
+        await loadUserData(user);
       } else {
-        // User is logged out - clear data
+        console.log('[Auth] ✗ No user found');
+        setUser(null);
         clearUserData();
       }
 
-      // Only set loading false after we've processed the auth state
-      setIsLoading(false);
-    });
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
+
+      // 2. Subscribe to auth changes AFTER initial load
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mountedRef.current) return;
+
+        console.log(
+          '[Auth] Event:',
+          event,
+          'User:',
+          session?.user?.id ?? 'NONE'
+        );
+
+        // Skip INITIAL_SESSION since we already handled it
+        if (event === 'INITIAL_SESSION') {
+          return;
+        }
+
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          await loadUserData(currentUser);
+        } else {
+          clearUserData();
+        }
+      });
+
+      authStateSubscription = subscription;
+    };
+
+    initialize();
+
+    // Refresh auth when tab becomes visible again
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && mountedRef.current) {
+        console.log('[Auth] Tab visible - refreshing auth');
+        const user = await getUserWithRetry(1);
+        if (mountedRef.current) {
+          setUser(user);
+          if (user) {
+            await loadUserData(user);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      console.log('[AppContext] Cleaning up auth listener');
-      subscription.unsubscribe();
+      console.log('[Auth] Cleanup');
+      mountedRef.current = false;
+      initRef.current = false;
+      authStateSubscription?.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loadUserData, clearUserData]);
+  }, [getUserWithRetry, loadUserData, clearUserData]);
 
   // Fetch products once on mount
   useEffect(() => {
     let mounted = true;
 
     const fetchProducts = async () => {
-      console.log('[AppContext] Fetching products');
+      console.log('[Auth] Fetching products');
       try {
         const { data: productsData, error: productsError } = await supabase
           .from('products')
@@ -210,12 +318,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .eq('active', true);
 
         if (productsError) {
-          console.error('[AppContext] Products fetch error:', productsError);
+          console.error('[Auth] Products fetch error:', productsError);
           return;
         }
 
         if (productsData && mounted) {
-          // Fetch images for each product
           const productsWithImages = await Promise.all(
             productsData.map(async (product) => {
               const { data: imagesData } = await supabase
@@ -241,13 +348,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           );
 
           setProducts(productsWithImages);
-          console.log(
-            '[AppContext] Products loaded:',
-            productsWithImages.length
-          );
+          console.log('[Auth] ✓ Products loaded:', productsWithImages.length);
         }
       } catch (err) {
-        console.error('[AppContext] Products fetch exception:', err);
+        console.error('[Auth] Products fetch exception:', err);
       }
     };
 

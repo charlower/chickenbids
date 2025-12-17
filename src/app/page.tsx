@@ -791,6 +791,10 @@ export default function Home() {
       setToast('LOGIN REQUIRED');
       return;
     }
+    if (timeWindow === 'no-auction') {
+      setToast('NO UPLINK AVAILABLE');
+      return;
+    }
     setAdProgress(0);
     setInterstitialOpen(true);
   };
@@ -1138,7 +1142,8 @@ export default function Home() {
   })();
 
   const interstitialNeedsAttention = requiresCredit && isLoggedIn && !hasCredit;
-  const interstitialDisabled = !isLoggedIn || timeWindow === 'no-auction';
+  // Button disabled when: not logged in OR credits not required (not within hour AND not live)
+  const interstitialDisabled = !isLoggedIn || !requiresCredit;
 
   // Get YouTube video ID directly from auction
   const youtubeVideoId = currentAuction?.livestream_url || null;
@@ -1535,7 +1540,10 @@ export default function Home() {
                     interstitialNeedsAttention ? styles.playerButtonPulse : ''
                   }`}
                   disabled={interstitialDisabled}
-                  onClick={interstitialDisabled ? undefined : openInterstitial}
+                  onClick={() => {
+                    if (interstitialDisabled) return;
+                    openInterstitial();
+                  }}
                 >
                   {interstitialLabel}
                 </button>
@@ -1826,7 +1834,10 @@ export default function Home() {
                       : ''
                   }`}
                   disabled={interstitialDisabled}
-                  onClick={interstitialDisabled ? undefined : openInterstitial}
+                  onClick={() => {
+                    if (interstitialDisabled) return;
+                    openInterstitial();
+                  }}
                 >
                   WATCH UPLINK FOR CREDIT
                 </button>
@@ -2099,14 +2110,11 @@ export default function Home() {
                   : styles.playerButtonDisabled
               } ${interstitialNeedsAttention ? styles.playerButtonPulse : ''}`}
               disabled={interstitialDisabled}
-              onClick={
-                interstitialDisabled
-                  ? undefined
-                  : () => {
-                      openInterstitial();
-                      setMobileSidebarOpen(false);
-                    }
-              }
+              onClick={() => {
+                if (interstitialDisabled) return;
+                openInterstitial();
+                setMobileSidebarOpen(false);
+              }}
             >
               {interstitialLabel}
             </button>

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  // Create response that we'll modify
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -15,12 +16,15 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
+          // First update the request cookies
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
+          // Then create a new response with updated request
           supabaseResponse = NextResponse.next({
             request,
           });
+          // Finally set cookies on the response
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -29,9 +33,18 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // This will refresh the session if expired - required for Server Components
-  // https://supabase.com/docs/guides/auth/server-side/nextjs
-  await supabase.auth.getUser();
+  // IMPORTANT: Do not remove this getUser() call!
+  // It refreshes the auth token if expired and syncs cookies
+  // This is what makes auth work reliably on refresh
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  // Debug logging (remove in production if noisy)
+  if (request.nextUrl.pathname === '/') {
+    console.log('[Middleware] Path:', request.nextUrl.pathname);
+    console.log('[Middleware] User:', user?.id ?? 'NONE');
+    console.log('[Middleware] Error:', error?.message ?? 'NONE');
+    console.log('[Middleware] Cookies being set:', supabaseResponse.cookies.getAll().map(c => c.name));
+  }
 
   return supabaseResponse;
 }
@@ -43,9 +56,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
+     * - public assets
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp3|wav)$).*)',
   ],
 };
-
