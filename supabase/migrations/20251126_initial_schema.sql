@@ -155,6 +155,48 @@ CREATE TABLE credits (
 COMMENT ON TABLE credits IS 'User credit balance for auction entry';
 
 -- =====================================================
+-- TABLE: waitlist
+-- =====================================================
+
+-- Waitlist table for landing page email signups
+CREATE TABLE IF NOT EXISTS waitlist (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  source TEXT DEFAULT 'landing', -- track where signup came from (landing, tiktok, etc)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  notified_at TIMESTAMPTZ, -- when we sent them an auction notification
+  converted_at TIMESTAMPTZ, -- when they created a full account
+  user_id UUID REFERENCES auth.users(id) -- link to user if they convert
+);
+
+-- Index for quick email lookups
+CREATE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist(email);
+
+-- Index for finding users to notify
+CREATE INDEX IF NOT EXISTS idx_waitlist_not_notified ON waitlist(notified_at) WHERE notified_at IS NULL;
+
+-- Enable RLS
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone to insert (public signups)
+CREATE POLICY "Anyone can join waitlist" ON waitlist
+  FOR INSERT
+  WITH CHECK (true);
+
+-- Only admins can read/update waitlist
+CREATE POLICY "Admins can manage waitlist" ON waitlist
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_admin = true
+    )
+  );
+
+
+
+-- =====================================================
 -- FUNCTIONS
 -- =====================================================
 

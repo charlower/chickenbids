@@ -107,12 +107,31 @@ export default function LandingPage() {
 
     setIsSubmitting(true);
 
-    // TODO: Save to database
-    // For now, just simulate success
-    await new Promise((r) => setTimeout(r, 500));
+    try {
+      const { error: insertError } = await supabase.from('waitlist').insert({
+        email: email.toLowerCase().trim(),
+        source: 'landing',
+      });
+
+      if (insertError) {
+        // Handle duplicate email
+        if (insertError.code === '23505') {
+          setError('This email is already on the list!');
+        } else {
+          console.error('Waitlist insert error:', insertError);
+          setError('Something went wrong. Please try again.');
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error('Waitlist exception:', err);
+      setError('Something went wrong. Please try again.');
+    }
 
     setIsSubmitting(false);
-    setIsSubmitted(true);
   };
 
   const auctionStartTime = auction?.start_at
