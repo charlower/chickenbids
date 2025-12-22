@@ -1407,15 +1407,17 @@ export default function Home() {
           INTEL
         </button>
 
-        <div className={styles.mission}>
-          <span>
-            <div
-              className={styles.pulseDot}
-              style={{ display: 'inline-block', marginRight: 6 }}
-            />
-            PLAYERS ONLINE: {onlineCount.toLocaleString()}
-          </span>
-        </div>
+        {onlineCount > 50 && (
+          <div className={styles.mission}>
+            <span>
+              <div
+                className={styles.pulseDot}
+                style={{ display: 'inline-block', marginRight: 6 }}
+              />
+              PLAYERS ONLINE: {onlineCount.toLocaleString()}
+            </span>
+          </div>
+        )}
 
         <div className={styles.meta}>
           <Link href='/'>HOME</Link>
