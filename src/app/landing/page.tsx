@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
 import LootIntelModal from '../components/LootIntelModal';
+import RegisterModal from '../components/RegisterModal';
+import LoginModal from '../components/LoginModal';
 import styles from './page.module.css';
 
 const formatCountdown = (ms: number) => {
@@ -52,6 +55,7 @@ type AuctionData = {
 };
 
 export default function LandingPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -60,6 +64,8 @@ export default function LandingPage() {
   const [productImages, setProductImages] = useState<string[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [lootModalOpen, setLootModalOpen] = useState(false);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   // Update time every second
   useEffect(() => {
@@ -280,6 +286,18 @@ export default function LandingPage() {
               </button>
             </form>
             {error && <p className={styles.error}>{error}</p>}
+
+            <div className={styles.orDivider}>
+              <span>or</span>
+            </div>
+
+            <button
+              type='button'
+              className={styles.registerButton}
+              onClick={() => setRegisterModalOpen(true)}
+            >
+              REGISTER NOW
+            </button>
           </>
         )}
       </div>
@@ -330,6 +348,42 @@ export default function LandingPage() {
             isOpen={lootModalOpen}
             onClose={() => setLootModalOpen(false)}
             lootData={lootData}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Register Modal */}
+      <AnimatePresence>
+        {registerModalOpen && (
+          <RegisterModal
+            isOpen={registerModalOpen}
+            onClose={() => setRegisterModalOpen(false)}
+            onSwitchToLogin={() => {
+              setRegisterModalOpen(false);
+              setLoginModalOpen(true);
+            }}
+            onSuccess={() => {
+              setRegisterModalOpen(false);
+              router.push('/');
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Login Modal */}
+      <AnimatePresence>
+        {loginModalOpen && (
+          <LoginModal
+            isOpen={loginModalOpen}
+            onClose={() => setLoginModalOpen(false)}
+            onSwitchToRegister={() => {
+              setLoginModalOpen(false);
+              setRegisterModalOpen(true);
+            }}
+            onSuccess={() => {
+              setLoginModalOpen(false);
+              router.push('/');
+            }}
           />
         )}
       </AnimatePresence>
