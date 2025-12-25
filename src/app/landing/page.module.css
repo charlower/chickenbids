@@ -73,14 +73,14 @@
   align-items: center;
   width: 100%;
   max-width: 400px;
-  padding: 32px 20px 0;
+  padding: 20px 20px 0;
 }
 
 .productImageWrapper {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  max-width: 280px;
+  max-width: 220px;
   border-radius: 16px;
   overflow: hidden;
   background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
@@ -103,10 +103,10 @@
 
 .productName {
   font-family: var(--font-geist-sans);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   text-align: center;
-  margin: 20px 0 4px;
+  margin: 12px 0 2px;
   letter-spacing: -0.5px;
 }
 
@@ -117,31 +117,39 @@
   margin: 0;
 }
 
-.priceRange {
+/* Price Anchor - Retail strikethrough + win price */
+.priceAnchor {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 16px;
-  padding: 12px 24px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(96, 165, 250, 0.3);
-  border-radius: 8px;
-  width: 100%;
+  margin-top: 20px;
+  gap: 4px;
+}
+
+.retailPrice {
+  font-family: var(--font-geist-mono);
+  font-size: 18px;
+  color: #666;
+  text-decoration: line-through;
+  text-decoration-color: #ef4444;
+  text-decoration-thickness: 2px;
+}
+
+.winPrice {
+  font-family: var(--font-geist-mono);
+  font-size: 48px;
+  font-weight: 800;
+  color: #22c55e;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(34, 197, 94, 0.4);
 }
 
 .priceLabel {
   font-family: var(--font-geist-mono);
-  font-size: 12px;
-  color: #60a5fa;
-  letter-spacing: 1px;
-}
-
-.priceValue {
-  font-family: var(--font-geist-mono);
-  font-size: 32px;
-  font-weight: 700;
-  color: #fff;
-  margin-top: 8px;
+  font-size: 11px;
+  color: #888;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
 }
 
 /* Countdown Section */
@@ -149,8 +157,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 32px 0;
-  padding: 24px;
+  margin: 20px 0;
+  padding: 16px 24px;
   width: 100%;
   max-width: 400px;
   background: rgba(255, 255, 255, 0.03);
@@ -257,64 +265,31 @@
   flex-shrink: 0;
 }
 
-/* Why Section */
-.whySection {
-  width: 100%;
-  max-width: 400px;
-  margin-bottom: 32px;
-  text-align: center;
-}
-
-.whySection h2 {
-  font-family: var(--font-geist-mono);
-  font-size: 12px;
-  color: #888;
-  letter-spacing: 2px;
-  margin-bottom: 12px;
-}
-
-.whyText {
-  font-size: 18px;
-  color: #fff;
-  margin: 0 0 12px;
-  line-height: 1.4;
-}
-
-.whyText strong {
-  color: #22c55e;
-  font-weight: 700;
-}
-
-.whyExplainer {
-  font-size: 14px;
-  color: #888;
-  line-height: 1.5;
-  margin: 0;
-}
-
-/* Email Section */
+/* Email Section - Primary CTA */
 .emailSection {
   width: 100%;
   max-width: 400px;
-  padding: 24px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.02) 100%);
-  border: 1px solid rgba(96, 165, 250, 0.25);
+  padding: 24px 20px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.03) 100%);
+  border: 2px solid rgba(34, 197, 94, 0.3);
   border-radius: 16px;
   text-align: center;
+  margin-bottom: 16px;
 }
 
 .emailSection h2 {
   font-family: var(--font-geist-mono);
-  font-size: 14px;
-  color: #60a5fa;
+  font-size: 16px;
+  font-weight: 800;
+  color: #22c55e;
   letter-spacing: 2px;
   margin: 0 0 8px;
 }
 
 .emailSection > p {
   font-size: 14px;
-  color: #888;
-  margin: 0 0 20px;
+  color: #aaa;
+  margin: 0 0 16px;
 }
 
 .emailForm {
@@ -346,22 +321,23 @@
 
 .submitButton {
   width: 100%;
-  padding: 16px;
+  padding: 18px;
   font-family: var(--font-geist-mono);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 1px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
 }
 
 .submitButton:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.5);
 }
 
 .submitButton:disabled {
@@ -434,27 +410,27 @@
   color: #fff;
 }
 
-/* Item Details Button */
+/* Item Details Button - Secondary action */
 .detailsButton {
-  margin-top: 16px;
-  padding: 14px 28px;
+  padding: 12px 24px;
   font-family: var(--font-geist-mono);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 1px;
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(96, 165, 250, 0.4);
+  background: transparent;
+  color: #888;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
   width: 100%;
+  max-width: 400px;
+  margin-bottom: 32px;
 }
 
 .detailsButton:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: #3b82f6;
-  transform: translateY(-1px);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Trust Footer */
@@ -520,7 +496,11 @@
     font-size: 48px;
   }
 
-  .priceValue {
-    font-size: 36px;
+  .winPrice {
+    font-size: 56px;
+  }
+
+  .retailPrice {
+    font-size: 20px;
   }
 }

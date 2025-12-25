@@ -44,6 +44,7 @@ type AuctionData = {
     condition: string;
     description: string | null;
     contents: string[];
+    retail_price: number | null;
     shipping_time: string;
     shipping_method: string;
     returns_policy: string;
@@ -210,21 +211,16 @@ export default function LandingPage() {
           <p className={styles.productVariant}>{auction.products.variant}</p>
         )}
 
-        {/* Item Details Button */}
-        {auction && lootData && (
-          <button
-            className={styles.detailsButton}
-            onClick={() => setLootModalOpen(true)}
-          >
-            VIEW ITEM DETAILS
-          </button>
-        )}
-
-        {/* Price Range */}
+        {/* Price Anchor - Retail crossed out, floor price highlighted */}
         {auction && (
-          <div className={styles.priceRange}>
-            <span className={styles.priceLabel}>WIN FOR AS LOW AS</span>
-            <span className={styles.priceValue}>${auction.floor_price}</span>
+          <div className={styles.priceAnchor}>
+            {auction.products?.retail_price && (
+              <span className={styles.retailPrice}>
+                ${auction.products.retail_price}
+              </span>
+            )}
+            <span className={styles.winPrice}>${auction.floor_price}</span>
+            <span className={styles.priceLabel}>LOWEST POSSIBLE PRICE</span>
           </div>
         )}
       </div>
@@ -238,7 +234,7 @@ export default function LandingPage() {
           </div>
         ) : auction ? (
           <>
-            <div className={styles.countdownLabel}>AUCTION STARTS IN</div>
+            <div className={styles.countdownLabel}>DROP IN</div>
             <div className={styles.countdown}>
               {formatCountdown(countdownMs)}
             </div>
@@ -251,53 +247,21 @@ export default function LandingPage() {
         )}
       </div>
 
-      {/* How It Works */}
-      <div className={styles.howItWorks}>
-        <h2>HOW IT WORKS</h2>
-        <div className={styles.steps}>
-          <div className={styles.step}>
-            <span className={styles.stepNumber}>1</span>
-            <span>Price starts high, drops every second.</span>
-          </div>
-          <div className={styles.step}>
-            <span className={styles.stepNumber}>2</span>
-            <span>Lock in your price anytime.</span>
-          </div>
-          <div className={styles.step}>
-            <span className={styles.stepNumber}>3</span>
-            <span>Pay what you locked, that&apos;s it.</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Why Section */}
-      <div className={styles.whySection}>
-        <h2>WHY SO CHEAP?</h2>
-        <p className={styles.whyText}>
-          Winners typically pay <strong>less than 50%</strong> of retail price.
-        </p>
-        <p className={styles.whyExplainer}>
-          We make money from ads shown during the auction, not from you.
-          That&apos;s how you score gear at prices that seem too good to be
-          true.
-        </p>
-      </div>
-
-      {/* Email Capture */}
+      {/* Email Capture - ABOVE THE FOLD */}
       <div className={styles.emailSection}>
         {isSubmitted ? (
           <div className={styles.successMessage}>
             <span className={styles.successIcon}>✓</span>
-            <h3>You&apos;re on the list!</h3>
-            <p>We&apos;ll email you before the auction goes live.</p>
+            <h3>SPOT CLAIMED!</h3>
+            <p>We&apos;ll email you before the drop.</p>
             <Link href='/' className={styles.enterButton}>
-              ENTER CHICKENBIDS
+              ENTER CHICKENBIDS NOW
             </Link>
           </div>
         ) : (
           <>
-            <h2>GET NOTIFIED</h2>
-            <p>Be the first to know when the auction drops</p>
+            <h2>CLAIM YOUR SPOT</h2>
+            <p>Get notified before the price drops</p>
             <form onSubmit={handleSubmit} className={styles.emailForm}>
               <input
                 type='email'
@@ -312,22 +276,51 @@ export default function LandingPage() {
                 className={styles.submitButton}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'JOINING...' : 'NOTIFY ME'}
+                {isSubmitting ? 'CLAIMING...' : 'RESERVE MY SPOT'}
               </button>
             </form>
             {error && <p className={styles.error}>{error}</p>}
-            <p className={styles.noSpam}>No spam. Unsubscribe anytime.</p>
           </>
         )}
+      </div>
+
+      {/* Item Details Button - After CTA */}
+      {auction && lootData && (
+        <button
+          className={styles.detailsButton}
+          onClick={() => setLootModalOpen(true)}
+        >
+          VIEW ITEM DETAILS
+        </button>
+      )}
+
+      {/* How It Works */}
+      <div className={styles.howItWorks}>
+        <h2>HOW IT WORKS</h2>
+        <div className={styles.steps}>
+          <div className={styles.step}>
+            <span className={styles.stepNumber}>1</span>
+            <span>Price starts high, drops every second</span>
+          </div>
+          <div className={styles.step}>
+            <span className={styles.stepNumber}>2</span>
+            <span>Lock in your price anytime</span>
+          </div>
+          <div className={styles.step}>
+            <span className={styles.stepNumber}>3</span>
+            <span>First to lock wins the item</span>
+          </div>
+        </div>
       </div>
 
       {/* Trust Footer */}
       <div className={styles.trustFooter}>
         <div className={styles.trustItems}>
-          <span>✓ No credit card required</span>
           <span>✓ Free to join</span>
+          <span>✓ No credit card</span>
           <span>✓ AU shipping included</span>
         </div>
+        <p className={styles.noSpam}>No spam, ever. Unsubscribe anytime.</p>
       </div>
 
       {/* Loot Intel Modal */}
